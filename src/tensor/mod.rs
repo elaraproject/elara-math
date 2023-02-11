@@ -73,27 +73,27 @@ where
         }
         Ok(i)
     }
-
-    // fn add(&self, other: Tensor<T, N>) -> Result<Tensor<T, N>, String> 
-    //     where &'static T: Add<&'static T> + 'static
-    // {
-    //     if self.shape() != other.shape() {
-    //         return Err(format!("[elara-math] Cannot add tensors of different shapes {:?}, {:?}", self.shape(), other.shape()))
-    //     }
-    //     let first_data = self.data();
-    //     let second_data = other.data();
-    //     let mut sum_array = vec![0; self.len()];
-    //     for (i, (a, b)) in first_data.iter().zip(&second_data).enumerate() {
-    //         sum_array[i] = a + b;
-    //     }
-    //     let result = Tensor {
-    //         shape: self.shape,
-    //         data: sum_array
-    //     };
-    //     Ok(result)
-    // }
+    
+    // Add and create new tensor
+    fn add(&self, other: Tensor<T, N>) -> Result<Tensor<T, N>, String> 
+        where T: Clone + 'static, &'static T: Add<&'static T>
+    {
+        if self.shape() != other.shape() {
+            return Err(format!("[elara-math] adding two tensors of shape {}, {}", self.shape(), other.shape()))
+        }
+        Tensor {
+            shape: self.shape,
+            data: add(self.data(), other.data())
+        }
+    }
 }
 
+fn add<T>(a: Vec<T>, b: Vec<T>) -> Vec<T> {
+    a.iter()
+        .zip(b.iter())
+        .map(|(a, b)| a * b)
+        .collect()
+}
     // Referenced https://codereview.stackexchange.com/questions/256345/n-dimensional-array-in-rust
 impl<T, const N: usize> Index<&[usize; N]> for Tensor<T, N> 
 where T: Clone
