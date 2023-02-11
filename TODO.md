@@ -1,0 +1,22 @@
+# TODO
+
+- [x] `Tensor` basic class
+- [x] Basic tensor creation methods:
+    - [x] `ones()`
+    - [x] `zeros()`
+    - [x] `empty()`
+    - [ ] `identity()`
+    - [ ] `random()`
+- [ ] Basic arithmetical operations
+    - [x] Add
+    - [x] Subtract
+    - [x] Multiply
+    - [ ] Divide
+- [ ] Basic linear algebra
+    - [ ] Transpose
+    - [x] Dot product
+    - [ ] Cross product
+    - [ ] Inverse
+- [ ] Refactoring
+    - [ ] Rewrite with generics
+- [ ] Benchmarks
