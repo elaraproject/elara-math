@@ -1,3 +1,6 @@
 [submodule "src/elara-gfx"]
 	path = src/elara-gfx
 	url = https://github.com/elaraproject/elara-gfx
+[submodule "src/elara-log"]
+	path = src/elara-log
+	url = https://github.com/elaraproject/elara-log
