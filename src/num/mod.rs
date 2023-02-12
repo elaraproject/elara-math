@@ -1,9 +1,9 @@
-use std::time::{SystemTime, UNIX_EPOCH};
 use crate::Tensor;
+use std::time::{SystemTime, UNIX_EPOCH};
 // Re-export common constants
 pub use std::f64::consts::*;
 
-/// Pseudorandom generator based on 
+/// Pseudorandom generator based on
 /// https://users.rust-lang.org/t/random-number-without-using-the-external-crate/17260/11
 pub fn rand() -> u32 {
     SystemTime::now()
@@ -14,7 +14,7 @@ pub fn rand() -> u32 {
 
 /// Generates a random float
 pub fn randf() -> f64 {
-    (rand() as f64)/(<u32>::max_value() as f64)
+    (rand() as f64) / (<u32>::max_value() as f64)
 }
 
 /// Generates a random int between 2 numbers

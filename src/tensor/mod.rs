@@ -1,9 +1,10 @@
 use elara_log::prelude::*;
-use std::iter::Sum;
+use std::iter::{Product, Sum};
 use std::{
     fmt::Debug,
     ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub},
 };
+// use crate::num::randf;
 
 mod utils;
 use utils::{One, Zero};
@@ -56,6 +57,17 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
         }
     }
 
+    /// Creates a new tensor filled with
+    /// random values
+    // pub fn rand(shape: [usize; N]) -> Self
+    // where T: Clone + From<f32>
+    // {
+    //     Tensor {
+    //         shape,
+    //         data: vec![randf() as T; shape.iter().product()]
+    //     }
+    // }
+
     /// Creates a new tensor of a shape without
     /// specifying values
     pub fn empty(shape: [usize; N]) -> Self {
@@ -63,6 +75,11 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
             shape,
             data: Vec::new(),
         }
+    }
+
+    fn from_vec1(array: Vec<T>) -> Self {
+        let shape = [array.iter().len(); N];
+        Tensor { shape, data: array }
     }
 
     /// Finds the number of elements present
@@ -105,6 +122,15 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
         Tensor::from(self.data, shape)
     }
 
+    /// Convert a higher-dimensional tensor into
+    /// a 1D tensor
+    pub fn flatten(self) -> Tensor<T, 1> {
+        Tensor {
+            data: self.data,
+            shape: [self.shape.iter().product(); 1],
+        }
+    }
+
     /// Find the dot product of a tensor with
     /// another tensor
     pub fn dot(self, other: &Tensor<T, N>) -> T
@@ -123,6 +149,42 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
         let vec: Vec<T> = range.collect();
         let len = vec.len();
         Tensor::from(vec, [len; N])
+    }
+
+    pub fn max(self) -> T
+    where
+        T: Ord,
+    {
+        self.data.iter().max().unwrap().clone()
+    }
+
+    pub fn min(self) -> T
+    where
+        T: Ord,
+    {
+        self.data.iter().min().unwrap().clone()
+    }
+
+    pub fn sum(self) -> T
+    where
+        T: Clone + Sum,
+    {
+        self.data.iter().map(|a| a.clone()).sum()
+    }
+
+    pub fn product(self) -> T
+    where
+        T: Clone + Product,
+    {
+        self.data.iter().map(|a| a.clone()).product()
+    }
+
+    pub fn mean(self) -> T
+    where
+        T: Clone + Sum + Div<usize, Output = T>,
+    {
+        let len = self.len();
+        self.sum() / len
     }
 }
 
