@@ -7,16 +7,41 @@
     - [x] `empty()`
     - [ ] `identity()`
     - [ ] `random()`
-- [ ] Basic arithmetical operations
+- [x] Basic arithmetical operations
     - [x] Add
     - [x] Subtract
     - [x] Multiply
-    - [ ] Divide
+    - [x] Divide
+    - [x] Negation
+- [ ] Basic operations
+    - [x] `reshape()`
+    - [x] `arange()`
+    - [ ] `linspace()`
+    - [ ] `flatten()`
+    - [ ] `max()`
+    - [ ] `min()`
+    - [ ] `clip()`
+    - [ ] `sum()`
+    - [ ] `product()`
+    - [ ] `mean()`
+    - [ ] `det()`
+    - [ ] `append()` - should update shape correspondingly
+    - [ ] `pop()` - should update shape correspondingly
+    - [ ] `rescale()` (for normalizing values between two numbers, e.g. 0 to 1)
 - [ ] Basic linear algebra
     - [ ] Transpose
     - [x] Dot product
     - [ ] Cross product
     - [ ] Inverse
+    - [ ] Norm
+- [ ] Autograd
+- [ ] More advanced scientific computing functionality
+    - [ ] Linear equation solver
+    - [ ] Curve fitting
+    - [ ] Optimizer
+    - [ ] Numerical integrator
+    - [ ] ODE solver
 - [ ] Refactoring
-    - [ ] Rewrite with generics
+    - [x] Rewrite with generics
+    - [ ] Implement `Debug` to print tensors
 - [ ] Benchmarks
