@@ -17,13 +17,13 @@
     - [x] `reshape()`
     - [x] `arange()`
     - [ ] `linspace()`
-    - [ ] `flatten()`
-    - [ ] `max()`
-    - [ ] `min()`
+    - [x] `flatten()`
+    - [x] `max()`
+    - [x] `min()`
     - [ ] `clip()`
-    - [ ] `sum()`
-    - [ ] `product()`
-    - [ ] `mean()`
+    - [x] `sum()`
+    - [x] `product()`
+    - [x] `mean()`
     - [ ] `det()`
     - [ ] `append()` - should update shape correspondingly
     - [ ] `pop()` - should update shape correspondingly
