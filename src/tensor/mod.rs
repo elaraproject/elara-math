@@ -1,51 +1,62 @@
 use elara_log::prelude::*;
-use std::convert::{From, Into};
+use std::iter::Sum;
 use std::{
     fmt::Debug,
-    ops::{Add, AddAssign, Index, IndexMut, Mul, Sub},
+    ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub},
 };
+
+mod utils;
+use utils::{One, Zero};
 
 // general tensor (multi-dimensional array) type
 #[derive(Debug, Clone)]
-pub struct Tensor<const N: usize> {
-    shape: [usize; N],
-    data: Vec<f64>,
+pub struct Tensor<T: Clone, const N: usize> {
+    pub shape: [usize; N],
+    pub data: Vec<T>,
 }
 
-impl<const N: usize> Tensor<N> {
-    pub fn new(array: &[f64], shape: [usize; N]) -> Self {
+impl<T: Clone, const N: usize> Tensor<T, N> {
+    /// Creates a new tensor from an array of
+    /// values with a given shape
+    pub fn new(array: &[T], shape: [usize; N]) -> Self {
         Tensor {
             shape,
             data: array.to_vec(),
         }
     }
 
-    pub fn from(array: Vec<f64>, shape: [usize; N]) -> Self {
+    /// Creates a new tensor with a `Vec` of
+    /// values with a given shape
+    pub fn from(array: Vec<T>, shape: [usize; N]) -> Self {
         Tensor { shape, data: array }
     }
 
-    pub fn zeros(shape: [usize; N]) -> Self {
-        let mut i = 1;
-        for j in 0..shape.len() {
-            i *= shape[j]
-        }
+    /// Creates a new tensor filled with
+    /// only zeroes
+    pub fn zeros(shape: [usize; N]) -> Self
+    where
+        T: Clone + Zero,
+    {
         Tensor {
             shape,
-            data: vec![0.into(); i],
+            data: vec![T::zero(); shape.iter().product()],
         }
     }
 
-    pub fn ones(shape: [usize; N]) -> Self {
-        let mut i = 1;
-        for j in 0..shape.len() {
-            i *= shape[j]
-        }
+    /// Creates a new tensor filled with
+    /// only zeroes
+    pub fn ones(shape: [usize; N]) -> Self
+    where
+        T: Clone + One,
+    {
         Tensor {
             shape,
-            data: vec![1.into(); i],
+            data: vec![T::one(); shape.iter().product()],
         }
     }
 
+    /// Creates a new tensor of a shape without
+    /// specifying values
     pub fn empty(shape: [usize; N]) -> Self {
         Tensor {
             shape,
@@ -53,20 +64,18 @@ impl<const N: usize> Tensor<N> {
         }
     }
 
-    pub fn shape(&self) -> [usize; N] {
-        self.shape
-    }
-
+    /// Finds the number of elements present
+    /// in a tensor
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &f64> {
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.data.iter()
     }
 
     // Referenced https://codereview.stackexchange.com/questions/256345/n-dimensional-array-in-rust
-    fn get_index(&self, idx: &[usize; N]) -> Result<usize, String> {
+    fn get_index(&self, idx: &[usize; N]) -> usize {
         let mut i = 0;
         for j in 0..self.shape.len() {
             if idx[j] >= self.shape[j] {
@@ -75,117 +84,134 @@ impl<const N: usize> Tensor<N> {
                     idx[j], j, self.shape[j]
                 );
                 error!("{}", err);
-                return Err(err);
             }
             i = i * self.shape[j] + idx[j];
         }
-        Ok(i)
+        i
     }
 
-    // Add and create new tensor
-    fn add(self, other: Tensor<N>) -> Result<Tensor<N>, String> {
-        if self.shape() != other.shape() {
+    pub fn reshape(self, shape: [usize; N]) -> Tensor<T, N> {
+        if self.len() != shape.iter().product() {
             let err = format!(
-                "[elara-math] Cannot two tensors of different shape {:?}, {:?}",
-                self.shape(),
-                other.shape()
+                "[elara-math] Cannot reshape into provided shape {:?}",
+                shape
             );
             error!("{}", err);
-            return Err(err);
         }
-
-        let data = self
-            .data
-            .iter()
-            .zip(other.data.iter())
-            .map(|(a, b)| a + b)
-            .collect();
-
-        Ok(Tensor {
-            shape: self.shape(),
-            data: data,
-        })
+        Tensor::from(self.data, shape)
     }
 
-    fn subtract(self, other: Tensor<N>) -> Result<Tensor<N>, String> {
-        if self.shape() != other.shape() {
-            let err = format!(
-                "[elara-math] Cannot two tensors of different shape {:?}, {:?}",
-                self.shape(),
-                other.shape()
-            );
-            error!("{}", err);
-            return Err(err);
-        }
-
-        let data = self
-            .data
-            .iter()
-            .zip(other.data.iter())
-            .map(|(a, b)| a - b)
-            .collect();
-
-        Ok(Tensor {
-            shape: self.shape(),
-            data: data,
-        })
-    }
-
-    fn scalar_mul(self, scalar: f64) -> Tensor<N> {
-        let data = self.data.iter().map(|el| el * scalar).collect();
-
-        Tensor {
-            shape: self.shape(),
-            data: data,
-        }
-    }
-
-    pub fn dot(self, other: Tensor<N>) -> f64 {
+    pub fn dot(self, other: &Tensor<T, N>) -> T
+    where
+        T: Clone + Mul<Output = T> + Sum,
+    {
         self.data
             .iter()
             .zip(other.data.iter())
-            .map(|(a, b)| a * b)
+            .map(|(a, b)| a.clone() * b.clone())
             .sum()
+    }
+
+    pub fn arange<I: Iterator<Item = T>>(range: I) -> Tensor<T, N> {
+        let vec: Vec<T> = range.collect();
+        let len = vec.len();
+        Tensor::from(vec, [len; N])
     }
 }
 
 // Referenced https://codereview.stackexchange.com/questions/256345/n-dimensional-array-in-rust
-impl<const N: usize> Index<&[usize; N]> for Tensor<N> {
-    type Output = f64;
+impl<T: Clone, const N: usize> Index<&[usize; N]> for Tensor<T, N> {
+    type Output = T;
 
-    fn index(&self, idx: &[usize; N]) -> &f64 {
-        let i = self.get_index(&idx).unwrap();
+    fn index(&self, idx: &[usize; N]) -> &T {
+        let i = self.get_index(&idx);
         &self.data[i]
     }
 }
 
-impl<const N: usize> IndexMut<&[usize; N]> for Tensor<N> {
-    fn index_mut(&mut self, idx: &[usize; N]) -> &mut f64 {
-        let i = self.get_index(idx).unwrap();
+impl<T: Clone, const N: usize> IndexMut<&[usize; N]> for Tensor<T, N> {
+    fn index_mut(&mut self, idx: &[usize; N]) -> &mut T {
+        let i = self.get_index(idx);
         &mut self.data[i]
     }
 }
 
-impl<const N: usize> Add<Tensor<N>> for Tensor<N> {
-    type Output = Tensor<N>;
+impl<T: Clone + Add<Output = T>, const N: usize> Add<&Tensor<T, N>> for &Tensor<T, N> {
+    type Output = Tensor<T, N>;
 
-    fn add(self, rhs: Tensor<N>) -> Self::Output {
-        self.add(rhs).unwrap()
+    fn add(self, rhs: &Tensor<T, N>) -> Self::Output {
+        if self.shape != rhs.shape {
+            let err = format!(
+                "[elara-math] Cannot add two tensors of differing shapes {:?}, {:?}",
+                self.shape, rhs.shape
+            );
+            error!("{}", err);
+        }
+
+        let sum_vec = self
+            .data
+            .iter()
+            .zip(&rhs.data)
+            .map(|(a, b)| a.clone() + b.clone())
+            .collect();
+
+        Tensor::from(sum_vec, self.shape.clone())
     }
 }
 
-impl<const N: usize> Sub<Tensor<N>> for Tensor<N> {
-    type Output = Tensor<N>;
+impl<T: Clone + Sub<Output = T>, const N: usize> Sub<&Tensor<T, N>> for &Tensor<T, N> {
+    type Output = Tensor<T, N>;
 
-    fn sub(self, rhs: Tensor<N>) -> Self::Output {
-        self.subtract(rhs).unwrap()
+    fn sub(self, rhs: &Tensor<T, N>) -> Self::Output {
+        if self.shape != rhs.shape {
+            let err = format!(
+                "[elara-math] Cannot subtract two tensors of differing shapes {:?}, {:?}",
+                self.shape, rhs.shape
+            );
+            error!("{}", err);
+        }
+
+        let difference_vec = self
+            .data
+            .iter()
+            .zip(&rhs.data)
+            .map(|(a, b)| a.clone() - b.clone())
+            .collect();
+
+        Tensor::from(difference_vec, self.shape.clone())
     }
 }
 
-impl<const N: usize> Mul<f64> for Tensor<N> {
-    type Output = Tensor<N>;
+// Scalar multiplication
+impl<T: Clone + Mul<Output = T>, const N: usize> Mul<T> for &Tensor<T, N> {
+    type Output = Tensor<T, N>;
 
-    fn mul(self, rhs: f64) -> Self::Output {
-        self.scalar_mul(rhs)
+    fn mul(self, val: T) -> Self::Output {
+        let mul_vec = self.data.iter().map(|a| val.clone() * a.clone()).collect();
+
+        Tensor::from(mul_vec, self.shape.clone())
+    }
+}
+
+// Scalar division
+impl<T: Clone + Div<Output = T>, const N: usize> Div<T> for &Tensor<T, N> {
+    type Output = Tensor<T, N>;
+
+    fn div(self, val: T) -> Self::Output {
+        let quotient_vec = self.data.iter().map(|a| val.clone() / a.clone()).collect();
+
+        Tensor::from(quotient_vec, self.shape.clone())
+    }
+}
+
+// Negation
+impl<T: Clone + Neg<Output = T>, const N: usize> Neg for Tensor<T, N> {
+    type Output = Tensor<T, N>;
+
+    fn neg(mut self) -> Self::Output {
+        for idx in 0..self.len() {
+            self.data[idx] = -(self.data[idx].clone());
+        }
+        self
     }
 }
