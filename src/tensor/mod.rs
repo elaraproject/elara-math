@@ -8,7 +8,8 @@ use std::{
 mod utils;
 use utils::{One, Zero};
 
-// general tensor (multi-dimensional array) type
+/// A general tensor (multi-dimensional differentiable
+/// array type)
 #[derive(Debug, Clone)]
 pub struct Tensor<T: Clone, const N: usize> {
     pub shape: [usize; N],
@@ -44,7 +45,7 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
     }
 
     /// Creates a new tensor filled with
-    /// only zeroes
+    /// only ones
     pub fn ones(shape: [usize; N]) -> Self
     where
         T: Clone + One,
@@ -70,6 +71,8 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
         self.data.len()
     }
 
+    /// Allows for iterating through elements
+    /// of a tensor
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.data.iter()
     }
@@ -90,6 +93,7 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
         i
     }
 
+    /// Change the shape of a tensor
     pub fn reshape(self, shape: [usize; N]) -> Tensor<T, N> {
         if self.len() != shape.iter().product() {
             let err = format!(
@@ -101,6 +105,8 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
         Tensor::from(self.data, shape)
     }
 
+    /// Find the dot product of a tensor with
+    /// another tensor
     pub fn dot(self, other: &Tensor<T, N>) -> T
     where
         T: Clone + Mul<Output = T> + Sum,
@@ -112,6 +118,7 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
             .sum()
     }
 
+    /// Create a tensor from a range of values
     pub fn arange<I: Iterator<Item = T>>(range: I) -> Tensor<T, N> {
         let vec: Vec<T> = range.collect();
         let len = vec.len();
