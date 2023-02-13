@@ -10,6 +10,7 @@ mod utils;
 use utils::{One, Zero};
 
 /// Macro for quickly creating 1D, 2D, or 3D tensors
+/// TODO: add support for 2D and 3D tensors
 #[macro_export]
 macro_rules! tensor {
     ([$($x:expr),* $(,)*]) => {{
@@ -86,7 +87,17 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
     }
 
     pub fn from_vec1(array: Vec<T>) -> Self {
-        let shape = [array.iter().len(); N];
+        let shape = [array.len(); N];
+        Tensor { shape, data: array }
+    }
+
+    pub fn from_vec2(array: Vec<T>) -> Self
+    where
+        T: ExactSizeIterator,
+    {
+        let mut shape: [usize; N] = [2; N];
+        shape[0] = array.len();
+        shape[1] = array[0].len();
         Tensor { shape, data: array }
     }
 
