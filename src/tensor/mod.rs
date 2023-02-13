@@ -9,6 +9,14 @@ use std::{
 mod utils;
 use utils::{One, Zero};
 
+/// Macro for quickly creating 1D, 2D, or 3D tensors
+#[macro_export]
+macro_rules! tensor {
+    ([$($x:expr),* $(,)*]) => {{
+        Tensor::from_vec1(vec![$($x,)*])
+    }};
+}
+
 /// A general tensor (multi-dimensional differentiable
 /// array type)
 #[derive(Debug, Clone)]
@@ -77,7 +85,7 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
         }
     }
 
-    fn from_vec1(array: Vec<T>) -> Self {
+    pub fn from_vec1(array: Vec<T>) -> Self {
         let shape = [array.iter().len(); N];
         Tensor { shape, data: array }
     }

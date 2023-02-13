@@ -1,5 +1,5 @@
 use elara_log::prelude::*;
-use elara_math::Tensor;
+use elara_math::{tensor, Tensor};
 
 fn main() {
     // Initialize logging library
@@ -16,11 +16,14 @@ fn main() {
 
     let t5 = Tensor::arange(0..4).reshape([2, 2]);
 
+    let t6 = tensor!([1, 2, 3, 4]).reshape([2, 2]);
+
     println!("{:?}", t1);
     println!("{:?}", t2);
     println!("{}", t1[&[1, 0]]);
     println!("{:?}", t3);
     println!("{:?}", t4);
     println!("Dot product test: {:?}", t4.dot(&t1));
+    println!("Sum test: {:?}", t6.sum());
     println!("{:?}", &t5 + &t1);
 }
