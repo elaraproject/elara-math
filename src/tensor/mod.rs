@@ -13,6 +13,9 @@ use utils::{One, Zero};
 /// TODO: add support for 2D and 3D tensors
 #[macro_export]
 macro_rules! tensor {
+    ([$([$($x:expr),* $(,)*]),+ $(,)*]) => {{
+        Tensor::from_vec2(vec![$([$($x,)*],)*])
+    }};
     ([$($x:expr),* $(,)*]) => {{
         Tensor::from_vec1(vec![$($x,)*])
     }};
@@ -91,14 +94,18 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
         Tensor { shape, data: array }
     }
 
-    pub fn from_vec2(array: Vec<T>) -> Self
+    pub fn from_vec2(array: Vec<[T; N]>) -> Self
     where
-        T: ExactSizeIterator,
+        T: Debug,
     {
         let mut shape: [usize; N] = [2; N];
         shape[0] = array.len();
         shape[1] = array[0].len();
-        Tensor { shape, data: array }
+        let flattened_arr: Vec<T> = array.into_iter().flatten().collect();
+        Tensor {
+            shape,
+            data: flattened_arr,
+        }
     }
 
     /// Finds the number of elements present

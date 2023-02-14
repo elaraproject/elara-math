@@ -16,7 +16,8 @@ fn main() {
 
     let t5 = Tensor::arange(0..4).reshape([2, 2]);
 
-    let t6 = tensor!([1, 2, 3, 4]).reshape([2, 2]);
+    let t6: Tensor<i32, 1> = tensor!([1, 2, 3, 4]);
+    let t7 = tensor!([[3, 6], [9, 12]]);
 
     println!("{:?}", t1);
     println!("{:?}", t2);
@@ -25,5 +26,6 @@ fn main() {
     println!("{:?}", t4);
     println!("Dot product test: {:?}", t4.dot(&t1));
     println!("Sum test: {:?}", t6.sum());
+    println!("{:?}", t7);
     println!("{:?}", &t5 + &t1);
 }
