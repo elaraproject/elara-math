@@ -239,6 +239,22 @@ impl<const N: usize> Tensor<f64, N> {
     }
 }
 
+impl Tensor<f64, 2> {
+    /// Finds the matrix product of 2 matrices
+    pub fn matmul(&self, b: &Tensor<f64, 2>) -> Tensor<f64, 2> {
+    	assert_eq!(self.shape[1], b.shape[0]);
+    	let mut res: Tensor<f64, 2> = Tensor::zeros([self.shape[0], b.shape[1]]);
+    	for row in 0..self.shape[0] {
+    		for col in 0..b.shape[1] {
+    			for el in 0..b.shape[0] {
+    				res[&[row, col]] += self[&[row, el]] * b[&[el, col]]
+    			}
+    		}
+    	}
+        res
+    }
+}
+
 // Referenced https://codereview.stackexchange.com/questions/256345/n-dimensional-array-in-rust
 impl<T: Clone, const N: usize> Index<&[usize; N]> for Tensor<T, N> {
     type Output = T;
@@ -382,6 +398,25 @@ impl<T: Clone + Mul<Output = T>, const N: usize> Mul<T> for Tensor<T, N> {
 
     fn mul(self, val: T) -> Self::Output {
         (&self).mul(val)
+    }
+}
+
+// Elementwise multiplication
+impl<T: Clone + Mul<Output = T>, const N: usize> Mul<&Tensor<T, N>> for &Tensor<T, N> {
+    type Output = Tensor<T, N>;
+
+    fn mul(self, rhs: &Tensor<T, N>) -> Self::Output {
+        assert_eq!(self.shape, rhs.shape);
+        let mul_vec = self.data.iter().zip(&rhs.data).map(|(a, b)| a.clone() * b.clone()).collect();
+        Tensor::from(mul_vec, self.shape.clone())
+    }
+}
+
+impl<T: Clone + Mul<Output = T>, const N: usize> Mul<Tensor<T, N>> for Tensor<T, N> {
+    type Output = Tensor<T, N>;
+
+    fn mul(self, rhs: Tensor<T, N>) -> Self::Output {
+        &self * &rhs
     }
 }
 
