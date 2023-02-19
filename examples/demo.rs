@@ -19,13 +19,15 @@ fn main() {
     let t6: Tensor<i32, 1> = tensor!([1, 2, 3, 4]);
     let t7 = tensor!([[3, 6], [9, 12]]);
 
+    let t8 = &t5 + &t1;
+
     println!("{:?}", t1);
     println!("{:?}", t2);
     println!("{}", t1[&[1, 0]]);
     println!("{:?}", t3);
+    println!("Dot product test: {:?}", t4.dot(t1));
     println!("{:?}", t4);
-    println!("Dot product test: {:?}", t4.dot(&t1));
     println!("Sum test: {:?}", t6.sum());
     println!("{:?}", t7);
-    println!("{:?}", &t5 + &t1);
+    println!("{:?}", t8);
 }
