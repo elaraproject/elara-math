@@ -2,9 +2,9 @@ use elara_log::prelude::*;
 use std::iter::{Product, Sum};
 use std::{
     fmt::Debug,
-    ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub},
+    ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub},
 };
-// use crate::num::randf;
+use crate::num::randf;
 
 mod utils;
 use utils::{One, Zero};
@@ -68,17 +68,6 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
             data: vec![T::one(); shape.iter().product()],
         }
     }
-
-    /// Creates a new tensor filled with
-    /// random values
-    // pub fn rand(shape: [usize; N]) -> Self
-    // where T: Clone + From<f32>
-    // {
-    //     Tensor {
-    //         shape,
-    //         data: vec![randf() as T; shape.iter().product()]
-    //     }
-    // }
 
     /// Creates a new tensor of a shape without
     /// specifying values
@@ -159,15 +148,16 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
 
     /// Find the dot product of a tensor with
     /// another tensor
-    pub fn dot(self, other: &Tensor<T, N>) -> T
+    pub fn dot(&self, other: Tensor<T, N>) -> T
     where
-        T: Clone + Mul<Output = T> + Sum,
+        T: Clone + Zero + Mul + AddAssign<<T as Mul>::Output>
     {
-        self.data
-            .iter()
-            .zip(other.data.iter())
-            .map(|(a, b)| a.clone() * b.clone())
-            .sum()
+        // assert_eq!(self.len(), other.len());
+        let mut product = T::zero();
+        for i in 0..other.data.len() {
+            product += self.data[i].clone() * other.data[i].clone();
+        }
+        product
     }
 
     /// Create a tensor from a range of values
@@ -175,6 +165,22 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
         let vec: Vec<T> = range.collect();
         let len = vec.len();
         Tensor::from(vec, [len; N])
+    }
+
+    pub fn transpose(mut self) -> Tensor<T, N> {
+        self.shape.reverse();
+        self
+    }
+
+    pub fn t(&self) -> Tensor<T, N> {
+        let mut shape = self.shape.clone();
+        shape.reverse();
+        let data = self.data.clone();
+        
+        Tensor {
+            shape,
+            data
+        }
     }
 
     pub fn max(self) -> T
@@ -211,6 +217,21 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
     {
         let len = self.len();
         self.sum() / len
+    }
+}
+
+impl<const N: usize> Tensor<f64, N> {
+
+    /// Creates a new tensor filled with
+    /// random values
+    pub fn random(shape: [usize; N]) -> Self {
+        // There's GOT to be a more efficient way to do this
+        let empty_vec = vec![0.0; shape.iter().product()];
+        let data = empty_vec.iter().map(|_| randf()).collect();
+        Tensor {
+            shape,
+            data
+        }
     }
 }
 
@@ -254,6 +275,38 @@ impl<T: Clone + Add<Output = T>, const N: usize> Add<&Tensor<T, N>> for &Tensor<
     }
 }
 
+impl<T: Clone + Add<Output = T>, const N: usize> Add<Tensor<T, N>> for Tensor<T, N>
+{
+    type Output = Tensor<T, N>;
+    
+    fn add(self, rhs: Tensor<T, N>) -> Self::Output {
+        &self + &rhs
+    }
+}
+
+// Scalar addition
+impl<T: Clone + Add<Output = T>, const N: usize> Add<T> for &Tensor<T, N> {
+    type Output = Tensor<T, N>;
+    
+    fn add(self, val: T) -> Self::Output {
+        let sum_vec = self
+            .data
+            .iter()
+            .map(|a| a.clone() + val.clone())
+            .collect();
+
+        Tensor::from(sum_vec, self.shape.clone())
+    }
+}
+
+impl<T: Clone + Add<Output = T>, const N: usize> Add<T> for Tensor<T, N> {
+    type Output = Tensor<T, N>;
+    
+    fn add(self, val: T) -> Self::Output {
+        &self + val
+    }
+}
+
 impl<T: Clone + Sub<Output = T>, const N: usize> Sub<&Tensor<T, N>> for &Tensor<T, N> {
     type Output = Tensor<T, N>;
 
@@ -277,6 +330,38 @@ impl<T: Clone + Sub<Output = T>, const N: usize> Sub<&Tensor<T, N>> for &Tensor<
     }
 }
 
+impl<T: Clone + Sub<Output = T>, const N: usize> Sub<Tensor<T, N>> for Tensor<T, N>
+{
+    type Output = Tensor<T, N>;
+    
+    fn sub(self, rhs: Tensor<T, N>) -> Self::Output {
+        &self - &rhs
+    }
+}
+
+// Scalar subtraction
+impl<T: Clone + Sub<Output = T>, const N: usize> Sub<T> for &Tensor<T, N> {
+    type Output = Tensor<T, N>;
+    
+    fn sub(self, val: T) -> Self::Output {
+        let sub_vec = self
+            .data
+            .iter()
+            .map(|a| a.clone() - val.clone())
+            .collect();
+
+        Tensor::from(sub_vec, self.shape.clone())
+    }
+}
+
+impl<T: Clone + Sub<Output = T>, const N: usize> Sub<T> for Tensor<T, N> {
+    type Output = Tensor<T, N>;
+    
+    fn sub(self, val: T) -> Self::Output {
+        &self - val
+    }
+}
+
 // Scalar multiplication
 impl<T: Clone + Mul<Output = T>, const N: usize> Mul<T> for &Tensor<T, N> {
     type Output = Tensor<T, N>;
@@ -285,6 +370,14 @@ impl<T: Clone + Mul<Output = T>, const N: usize> Mul<T> for &Tensor<T, N> {
         let mul_vec = self.data.iter().map(|a| val.clone() * a.clone()).collect();
 
         Tensor::from(mul_vec, self.shape.clone())
+    }
+}
+
+impl<T: Clone + Mul<Output = T>, const N: usize> Mul<T> for Tensor<T, N> {
+    type Output = Tensor<T, N>;
+
+    fn mul(self, val: T) -> Self::Output {
+        (&self).mul(val)
     }
 }
 
