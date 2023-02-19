@@ -7,7 +7,7 @@ fn main() {
 
     let a: Tensor<i32, 1> = tensor!([1, 2, 3, 4, 5]);
     let b: Tensor<i32, 1> = tensor!([2, 3, 4, 5, 6]);
-    let dot_prod = a.dot(b);
+    let dot_prod = a.dot(&b);
     println!("Dot product: {:?}", dot_prod);
     println!("{:?}", a);
 }

@@ -2,7 +2,7 @@ use elara_log::prelude::*;
 use std::iter::{Product, Sum};
 use std::{
     fmt::Debug,
-    ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub},
+    ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub},
 };
 use crate::num::randf;
 
@@ -148,17 +148,22 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
 
     /// Find the dot product of a tensor with
     /// another tensor
-    pub fn dot(&self, other: Tensor<T, N>) -> T
+    pub fn dot(&self, other: &Tensor<T, N>) -> T
     where
-        T: Clone + Zero + Mul + AddAssign<<T as Mul>::Output>
+        T: Clone + Zero + Mul<Output = T>
     {
-        // assert_eq!(self.len(), other.len());
+        assert_eq!(self.len(), other.len());
         let mut product = T::zero();
-        for i in 0..other.data.len() {
-            product += self.data[i].clone() * other.data[i].clone();
+        for i in 0..self.len() {
+            product = product + self.data[i].clone() + other.data[i].clone()
         }
         product
     }
+
+    /// Matrix multiplication
+    // pub fn matmul(&self, other: &Tensor<T, N>) -> Tensor<f64, N> {
+    //     A_rows = self.len();
+    // }
 
     /// Create a tensor from a range of values
     pub fn arange<I: Iterator<Item = T>>(range: I) -> Tensor<T, N> {
@@ -183,40 +188,39 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
         }
     }
 
-    pub fn max(self) -> T
+    pub fn max(&self) -> T
     where
         T: Ord,
     {
         self.data.iter().max().unwrap().clone()
     }
 
-    pub fn min(self) -> T
+    pub fn min(&self) -> T
     where
         T: Ord,
     {
         self.data.iter().min().unwrap().clone()
     }
 
-    pub fn sum(self) -> T
+    pub fn sum(&self) -> T
     where
         T: Clone + Sum,
     {
         self.data.iter().map(|a| a.clone()).sum()
     }
 
-    pub fn product(self) -> T
+    pub fn product(&self) -> T
     where
         T: Clone + Product,
     {
         self.data.iter().map(|a| a.clone()).product()
     }
 
-    pub fn mean(self) -> T
+    pub fn mean(&self) -> T
     where
         T: Clone + Sum + Div<usize, Output = T>,
     {
-        let len = self.len();
-        self.sum() / len
+        self.sum() / self.len()
     }
 }
 
