@@ -25,7 +25,7 @@ fn main() {
     println!("{:?}", t2);
     println!("{}", t1[&[1, 0]]);
     println!("{:?}", t3);
-    println!("Dot product test: {:?}", t4.dot(t1));
+    println!("Dot product test: {:?}", t4.dot(&t1));
     println!("{:?}", t4);
     println!("Sum test: {:?}", t6.sum());
     println!("{:?}", t7);
