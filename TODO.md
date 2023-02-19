@@ -6,7 +6,7 @@
     - [x] `zeros()`
     - [x] `empty()`
     - [ ] `identity()`
-    - [ ] `random()`
+    - [x] `random()`
 - [x] Basic arithmetical operations
     - [x] Add
     - [x] Subtract
@@ -29,8 +29,9 @@
     - [ ] `pop()` - should update shape correspondingly
     - [ ] `rescale()` (for normalizing values between two numbers, e.g. 0 to 1)
 - [ ] Basic linear algebra
-    - [ ] Transpose
+    - [x] Transpose
     - [x] Dot product
+    - [x] Matrix product
     - [ ] Cross product
     - [ ] Inverse
     - [ ] Norm

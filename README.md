@@ -10,6 +10,8 @@ Elara Math is a Rust-native math library, with (current or planned support for):
 
 \*: GPU tensors are not available yet, but GPU acceleration is planned to be added in the future
 
+See the [neural network example](./examples/tiny_nn.rs) for a working tiny neural network using `elara-math`.
+
 ## Developing
 
 To develop `elara-math`, first clone the repository:
