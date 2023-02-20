@@ -35,6 +35,7 @@
     - [ ] Cross product
     - [ ] Inverse
     - [ ] Norm
+- [x] Move all linear algebra operations to top-level of crate
 - [ ] Autograd
 - [ ] More advanced scientific computing functionality
     - [ ] Linear equation solver
