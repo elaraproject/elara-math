@@ -21,3 +21,13 @@ pub fn randint(a: i32, b: i32) -> i32 {
     let m = (b - a + 1) as u32;
     return a + (rand() % m) as i32;
 }
+
+pub fn max<T>(a: T, b: T) -> T 
+where T: PartialOrd
+{
+	if a >= b {
+		a
+	} else {
+		b
+	}
+}

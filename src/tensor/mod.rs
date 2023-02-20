@@ -4,6 +4,7 @@ use std::{
     fmt::Debug,
     ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub},
 };
+use std::cmp::PartialOrd;
 use crate::num::randf;
 
 mod utils;
