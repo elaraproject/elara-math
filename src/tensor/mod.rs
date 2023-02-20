@@ -4,14 +4,12 @@ use std::{
     fmt::Debug,
     ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub},
 };
-use std::cmp::PartialOrd;
 use crate::num::randf;
 
 mod utils;
 use utils::{One, Zero};
 
-/// Macro for quickly creating 1D, 2D, or 3D tensors
-/// TODO: add support for 2D and 3D tensors
+/// Macro for quickly creating 1D or 2D tensors
 #[macro_export]
 macro_rules! tensor {
     ([$([$($x:expr),* $(,)*]),+ $(,)*]) => {{
@@ -115,11 +113,7 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
         let mut i = 0;
         for j in 0..self.shape.len() {
             if idx[j] >= self.shape[j] {
-                let err = format!(
-                    "[elara-math] Index {} is out of bounds for dimension {} with size {}",
-                    idx[j], j, self.shape[j]
-                );
-                error!("{}", err);
+                error!("[elara-math] Index {} is out of bounds for dimension {} with size {}", idx[j], j, self.shape[j])
             }
             i = i * self.shape[j] + idx[j];
         }
@@ -129,11 +123,7 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
     /// Change the shape of a tensor
     pub fn reshape(self, shape: [usize; N]) -> Tensor<T, N> {
         if self.len() != shape.iter().product() {
-            let err = format!(
-                "[elara-math] Cannot reshape into provided shape {:?}",
-                shape
-            );
-            error!("{}", err);
+            error!("[elara-math] Cannot reshape into provided shape {:?}", shape);
         }
         Tensor::from(self.data, shape)
     }
@@ -153,18 +143,16 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
     where
         T: Clone + Zero + Mul<Output = T>
     {
-        assert_eq!(self.len(), other.len());
+        if self.len() != other.len() {
+            error!("[elara-math] Dot product cannot be found between tensors of shape {} and {}, consider using matmul()",
+        self.len(), other.len())
+        }
         let mut product = T::zero();
         for i in 0..self.len() {
             product = product + self.data[i].clone() + other.data[i].clone()
         }
         product
     }
-
-    /// Matrix multiplication
-    // pub fn matmul(&self, other: &Tensor<T, N>) -> Tensor<f64, N> {
-    //     A_rows = self.len();
-    // }
 
     /// Create a tensor from a range of values
     pub fn arange<I: Iterator<Item = T>>(range: I) -> Tensor<T, N> {
@@ -173,11 +161,13 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
         Tensor::from(vec, [len; N])
     }
 
+    /// Transposes a tensor in-place
     pub fn transpose(mut self) -> Tensor<T, N> {
         self.shape.reverse();
         self
     }
 
+    /// Transposes a tensor and returns a new tensor
     pub fn t(&self) -> Tensor<T, N> {
         let mut shape = self.shape.clone();
         shape.reverse();
@@ -226,7 +216,6 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
 }
 
 impl<const N: usize> Tensor<f64, N> {
-
     /// Creates a new tensor filled with
     /// random values
     pub fn random(shape: [usize; N]) -> Self {
