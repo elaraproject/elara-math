@@ -4,14 +4,10 @@ mod tensor;
 pub use num::*;
 pub use tensor::*;
 // pub use autograd;
-// pub use linalg;
 
 use num_traits::{Float, Zero};
 
-// TODO Change all these to accept tensors by reference
-// so they don't take ownership of the tensor
-
-pub fn exp<T, const N: usize>(x: Tensor<T, N>) -> Tensor<T, N> 
+pub fn exp<T, const N: usize>(x: &Tensor<T, N>) -> Tensor<T, N> 
 where T: Float
 {
     let exp_vec = x.iter()
@@ -23,7 +19,7 @@ where T: Float
     }
 }
 
-pub fn sigmoid<T, const N: usize>(x: Tensor<T, N>) -> Tensor<T, N>
+pub fn sigmoid<T, const N: usize>(x: &Tensor<T, N>) -> Tensor<T, N>
 where T: Float
 {
     let sigmoid_vec = x.iter()
@@ -35,7 +31,7 @@ where T: Float
     }
 }
 
-pub fn sigmoid_d<T, const N: usize>(x: Tensor<T, N>) -> Tensor<T, N>
+pub fn sigmoid_d<T, const N: usize>(x: &Tensor<T, N>) -> Tensor<T, N>
 where T: Float
 {
     let sigmoid_vec = x.iter()
@@ -47,7 +43,20 @@ where T: Float
     }
 }
 
-pub fn sin<T, const N: usize>(x: Tensor<T, N>) -> Tensor<T, N>
+
+pub fn sqrt<T, const N: usize>(x: &Tensor<T, N>) -> Tensor<T, N>
+where T: Float
+{
+    let sqrt_vec = x.iter()
+        .map(|a| a.clone().sqrt())
+        .collect();
+    Tensor {
+        shape: x.shape,
+        data: sqrt_vec
+    }
+}
+
+pub fn sin<T, const N: usize>(x: &Tensor<T, N>) -> Tensor<T, N>
 where T: Float
 {
 	let sin_vec = x.iter()
@@ -59,7 +68,7 @@ where T: Float
 	}
 }
 
-pub fn cos<T, const N: usize>(x: Tensor<T, N>) -> Tensor<T, N>
+pub fn cos<T, const N: usize>(x: &Tensor<T, N>) -> Tensor<T, N>
 where T: Float
 {
 	let cos_vec = x.iter()
@@ -71,7 +80,7 @@ where T: Float
 	}
 }
 
-pub fn tanh<T, const N: usize>(x: Tensor<T, N>) -> Tensor<T, N>
+pub fn tanh<T, const N: usize>(x: &Tensor<T, N>) -> Tensor<T, N>
 where T: Float
 {
 	let tanh_vec = x.iter()
@@ -83,12 +92,12 @@ where T: Float
 	}
 }
 
-pub fn maximum<T, const N: usize>(x: Tensor<T, N>, y: Tensor<T, N>) -> Tensor<T, N>
+pub fn maximum<T, const N: usize>(x: &Tensor<T, N>, y: &Tensor<T, N>) -> Tensor<T, N>
 where T: Clone + PartialOrd
 {
 	assert_eq!(x.shape, y.shape);
 	let max_vec = x.iter()
-		.zip(y.data)
+		.zip(&y.data)
 		.map(|(a, b)| num::max(a.clone(), b.clone()))
 		.collect();
 	Tensor {
@@ -97,7 +106,7 @@ where T: Clone + PartialOrd
 	}
 }
 
-pub fn relu<T, const N: usize>(x: Tensor<T, N>) -> Tensor<T, N>
+pub fn relu<T, const N: usize>(x: &Tensor<T, N>) -> Tensor<T, N>
 where T: Zero + Clone + PartialOrd
 {
 	let relu_vec = x.iter()
