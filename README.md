@@ -2,11 +2,10 @@
 
 Elara Math is a Rust-native math library, with (current or planned support for):
 
-- Tensors (n-dimensional arrays)\*
-- Linear algebra with tensors
-- Numerical solvers for integration & differential equations
-- Automatic differentiation
-- Symbolic mathematics
+- Tensors (n-dimensional arrays)\* (supported)
+- Linear algebra with tensors (supported)
+- Numerical solvers for integration & differential equations (WIP)
+- Automatic differentiation (WIP)
 
 \*: GPU tensors are not available yet, but GPU acceleration is planned to be added in the future
 
