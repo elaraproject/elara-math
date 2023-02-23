@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 license = "Unlicense"
 description = "Rust-native tensor and math library"
+repository = "https://github.com/elaraproject/elara-math"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
