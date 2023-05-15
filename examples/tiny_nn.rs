@@ -1,20 +1,21 @@
-use elara_math::{Tensor, sigmoid, sigmoid_d};
+use elara_math::{Tensor, sigmoid, sigmoid_d, tensor};
 
 const EPOCHS: usize = 10000;
 
 fn main() {
     #[rustfmt::skip]
-    let train_data = Tensor::new(&[
-        0.0, 0.0, 1.0, 
-        1.0, 1.0, 1.0, 
-        1.0, 0.0, 1.0, 
-        0.0, 1.0, 1.0], [4, 3]);
+    let train_data = tensor![
+        [0.0, 0.0, 1.0],
+        [1.0, 1.0, 1.0],
+        [1.0, 0.0, 1.0],
+        [0.0, 1.0, 1.0]];
     #[rustfmt::skip]
-    let train_labels = Tensor::new(&[
-    	0.0, 
-    	1.0, 
-    	1.0, 
-    	0.0], [1, 4]).t();
+    let train_labels = tensor![
+        [0.0],
+        [1.0],
+        [1.0],
+        [0.0]
+    ].reshape([4, 1]);
     let mut weights = Tensor::random([3, 1]) * 2.0 - 1.0;
     println!("Weights before training: {:?}", weights);
     for _ in 0..EPOCHS {

@@ -12,10 +12,10 @@ use utils::{One, Zero};
 /// Macro for quickly creating 1D or 2D tensors
 #[macro_export]
 macro_rules! tensor {
-    ([$([$($x:expr),* $(,)*]),+ $(,)*]) => {{
+    [$([$($x:expr),* $(,)*]),+ $(,)*] => {{
         Tensor::from_vec2(vec![$([$($x,)*],)*])
     }};
-    ([$($x:expr),* $(,)*]) => {{
+    [$($x:expr),* $(,)*] => {{
         Tensor::from_vec1(vec![$($x,)*])
     }};
 }
@@ -82,18 +82,18 @@ impl<T: Clone, const N: usize> Tensor<T, N> {
         Tensor { shape, data: array }
     }
 
-    pub fn from_vec2(array: Vec<[T; N]>) -> Self
+    pub fn from_vec2(array: Vec<[T; N]>) -> Tensor<T, 2>
     where
         T: Debug,
     {
-        let mut shape: [usize; N] = [2; N];
-        shape[0] = array.len();
-        shape[1] = array[0].len();
+        let dim1 = array.len();
+        let dim2 = array[0].len();
         let flattened_arr: Vec<T> = array.into_iter().flatten().collect();
-        Tensor {
-            shape,
+        let tensor: Tensor<T, 2> = Tensor {
+            shape: [dim1, dim2],
             data: flattened_arr,
-        }
+        };
+        tensor
     }
 
     /// Finds the number of elements present
