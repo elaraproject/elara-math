@@ -13,10 +13,10 @@ use utils::{One, Zero};
 #[macro_export]
 macro_rules! tensor {
     [$([$($x:expr),* $(,)*]),+ $(,)*] => {{
-        Tensor::from_vec2(vec![$([$($x,)*],)*])
+        $crate::Tensor::from_vec2(vec![$([$($x,)*],)*])
     }};
     [$($x:expr),* $(,)*] => {{
-        Tensor::from_vec1(vec![$($x,)*])
+        $crate::Tensor::from_vec1(vec![$($x,)*])
     }};
 }
 
