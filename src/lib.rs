@@ -8,7 +8,7 @@ pub use num::*;
 pub use tensor::*;
 // pub use autograd;
 
-use num_traits::{Float, Zero};
+
 pub mod prelude;
 
 // pub fn exp<T, const N: usize>(x: &Tensor<T, N>) -> Tensor<T, N>
