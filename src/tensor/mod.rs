@@ -1,11 +1,3 @@
-use elara_log::prelude::*;
-use std::cell::Ref;
-use std::iter::{Product, Sum};
-use std::{
-    ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub},
-};
-use crate::num::randf;
-
 mod array;
 pub use array::{NdArray, utils::*};
 
@@ -15,14 +7,14 @@ pub use autograd::Value;
 #[macro_export]
 macro_rules! tensor {
     ([$($x:expr),*] $(, $mth:ident = $val:expr)+) => {
-        let arr = array!($($x),*).mapv(|elem: f64| {
+        $crate::array!($($x),*).mapv(|elem: f64| {
             let mut value = val!(elem);
             $( value.$mth($val) )*;
             value
         })
     };
     [$($x:expr),*] => {
-        array!($($x),*).mapv(|elem: f64| val!(elem))
+        $crate::array!($($x),*).mapv(|elem: f64| $crate::val!(elem))
     };
 }
 

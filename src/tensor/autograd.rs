@@ -5,7 +5,6 @@ use std::{
     collections::HashSet,
     fmt::{self, Debug},
     hash::{Hash, Hasher},
-    iter::Sum,
     ops,
     rc::Rc,
 };
