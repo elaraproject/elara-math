@@ -19,7 +19,7 @@ pub fn randf() -> f64 {
 /// Generates a random int between 2 numbers
 pub fn randint(a: i32, b: i32) -> i32 {
     let m = (b - a + 1) as u32;
-    return a + (rand() % m) as i32;
+    a + (rand() % m) as i32
 }
 
 pub fn max<T>(a: T, b: T) -> T 
