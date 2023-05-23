@@ -36,7 +36,7 @@
     - [ ] Inverse
     - [ ] Norm
 - [x] Move all linear algebra operations to top-level of crate
-- [ ] Autograd
+- [x] Autograd
 - [ ] More advanced scientific computing functionality
     - [ ] Linear equation solver
     - [ ] Curve fitting
