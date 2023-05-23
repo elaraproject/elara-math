@@ -30,7 +30,7 @@ macro_rules! val {
         value
     }};
     ($x: expr) => {
-        Value::from($x)
+        $crate::Value::from($x)
     };
 }
 
