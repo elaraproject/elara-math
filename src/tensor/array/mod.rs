@@ -109,14 +109,14 @@ impl<T: Clone, const N: usize> NdArray<T, N> {
         self.data.iter()
     }
     
-    pub fn mapv<B, F>(&self, mut f: F) -> NdArray<B, N>
+    pub fn mapv<B, F>(&self, f: F) -> NdArray<B, N>
     where T: Clone,
           F: FnMut(T) -> B,
           B: Clone
     {
         let data = self.data.clone();
         NdArray {
-            data: data.into_iter().map(move |x| f(x.clone())).collect(),
+            data: data.into_iter().map(f).collect(),
             shape: self.shape
         }
     }
@@ -183,7 +183,7 @@ impl<T: Clone, const N: usize> NdArray<T, N> {
 
     /// Transposes a NdArray and returns a new NdArray
     pub fn t(&self) -> NdArray<T, N> {
-        let mut shape = self.shape.clone();
+        let mut shape = self.shape;
         shape.reverse();
         let data = self.data.clone();
         
@@ -211,14 +211,14 @@ impl<T: Clone, const N: usize> NdArray<T, N> {
     where
         T: Clone + Sum,
     {
-        self.data.iter().map(|a| a.clone()).sum()
+        self.data.iter().cloned().sum()
     }
 
     pub fn product(&self) -> T
     where
         T: Clone + Product,
     {
-        self.data.iter().map(|a| a.clone()).product()
+        self.data.iter().cloned().product()
     }
 
     pub fn mean(&self) -> T
@@ -264,7 +264,7 @@ impl<T: Clone, const N: usize> Index<&[usize; N]> for NdArray<T, N> {
     type Output = T;
 
     fn index(&self, idx: &[usize; N]) -> &T {
-        let i = self.get_index(&idx);
+        let i = self.get_index(idx);
         &self.data[i]
     }
 }
@@ -295,7 +295,7 @@ impl<T: Clone + Add<Output = T>, const N: usize> Add<&NdArray<T, N>> for &NdArra
             .map(|(a, b)| a.clone() + b.clone())
             .collect();
 
-        NdArray::from(sum_vec, self.shape.clone())
+        NdArray::from(sum_vec, self.shape)
     }
 }
 
@@ -319,7 +319,7 @@ impl<T: Clone + Add<Output = T>, const N: usize> Add<T> for &NdArray<T, N> {
             .map(|a| a.clone() + val.clone())
             .collect();
 
-        NdArray::from(sum_vec, self.shape.clone())
+        NdArray::from(sum_vec, self.shape)
     }
 }
 
@@ -366,7 +366,7 @@ impl<T: Clone + Add<Output = T>, const N: usize> AddAssign<NdArray<T, N>> for Nd
             .zip(&rhs.data)
             .map(|(a, b)| a.clone() + b.clone())
             .collect();
-        self.data = sum_vec.clone();
+        self.data = sum_vec;
     }
 }
 
@@ -389,7 +389,7 @@ impl<T: Clone + Sub<Output = T>, const N: usize> Sub<&NdArray<T, N>> for &NdArra
             .map(|(a, b)| a.clone() - b.clone())
             .collect();
 
-        NdArray::from(difference_vec, self.shape.clone())
+        NdArray::from(difference_vec, self.shape)
     }
 }
 
@@ -413,7 +413,7 @@ impl<T: Clone + Sub<Output = T>, const N: usize> Sub<T> for &NdArray<T, N> {
             .map(|a| a.clone() - val.clone())
             .collect();
 
-        NdArray::from(sub_vec, self.shape.clone())
+        NdArray::from(sub_vec, self.shape)
     }
 }
 
@@ -432,7 +432,7 @@ impl<T: Clone + Mul<Output = T>, const N: usize> Mul<T> for &NdArray<T, N> {
     fn mul(self, val: T) -> Self::Output {
         let mul_vec = self.data.iter().map(|a| val.clone() * a.clone()).collect();
 
-        NdArray::from(mul_vec, self.shape.clone())
+        NdArray::from(mul_vec, self.shape)
     }
 }
 
@@ -451,7 +451,7 @@ impl<T: Clone + Mul<Output = T>, const N: usize> Mul<&NdArray<T, N>> for &NdArra
     fn mul(self, rhs: &NdArray<T, N>) -> Self::Output {
         assert_eq!(self.shape, rhs.shape);
         let mul_vec = self.data.iter().zip(&rhs.data).map(|(a, b)| a.clone() * b.clone()).collect();
-        NdArray::from(mul_vec, self.shape.clone())
+        NdArray::from(mul_vec, self.shape)
     }
 }
 
@@ -470,7 +470,7 @@ impl<T: Clone + Div<Output = T>, const N: usize> Div<T> for &NdArray<T, N> {
     fn div(self, val: T) -> Self::Output {
         let quotient_vec = self.data.iter().map(|a| val.clone() / a.clone()).collect();
 
-        NdArray::from(quotient_vec, self.shape.clone())
+        NdArray::from(quotient_vec, self.shape)
     }
 }
 
