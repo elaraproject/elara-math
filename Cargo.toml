@@ -11,3 +11,5 @@ repository = "https://github.com/elaraproject/elara-math"
 [dependencies]
 elara_log = { version = "0.1.0", path = "src/elara-log" }
 num-traits = "0.2.15"
+uuid = { version = "1.3.3", features = ["v4"] }
+impl_ops = "0.1.1"
