@@ -6,7 +6,7 @@ use std::{
     fmt::{self, Debug},
     hash::{Hash, Hasher},
     ops,
-    rc::Rc,
+    rc::Rc, iter::Sum,
 };
 use uuid::Uuid;
 
@@ -50,6 +50,12 @@ impl ops::Deref for Value {
     type Target = Rc<RefCell<ValueData>>;
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl ops::DerefMut for Value {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -102,6 +108,8 @@ impl_op_ex!(*= |a: &mut Value, b: &Value| { *a = &*a * b });
 impl_op_ex!(/ |a: &Value, b: f64| -> Value { a / Value::from(b) });
 impl_op_ex!(/ |a: f64, b: &Value| -> Value { Value::from(a) / b });
 
+
+
 impl ValueData {
     fn new(data: f64) -> ValueData {
         ValueData {
@@ -112,6 +120,10 @@ impl ValueData {
             _prev: Vec::new(),
             _op: None,
         }
+    }
+    
+    pub fn zero_grad(&mut self) {
+        self.grad = 0.0;
     }
 }
 
@@ -124,7 +136,7 @@ impl<T: Into<f64>> From<T> for Value {
 impl Debug for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let v = &self.borrow();
-        write!(f, "data={} grad={}", v.data, v.grad)
+        write!(f, "Value(data={} grad={})", v.data, v.grad)
     }
 }
 
@@ -155,6 +167,17 @@ impl Value {
         out
     }
 
+    pub fn exp(&self) -> Value {
+        let out = Value::from(self.borrow().data.exp());
+        out.borrow_mut()._prev = vec![self.clone()];
+        out.borrow_mut()._op = Some(String::from("exp"));
+        out.borrow_mut()._backward = Some(|value: &ValueData| {
+            let prev = value._prev[0].borrow().data;
+            value._prev[0].borrow_mut().grad += prev.exp();
+        });
+        out
+    }
+
     pub fn backward(&self) {
         let mut topo: Vec<Value> = vec![];
         let mut visited: HashSet<Value> = HashSet::new();
@@ -179,10 +202,10 @@ impl Value {
     }
 }
 
-// impl Sum for Value {
-//     fn sum<I: Iterator<Item = Self>>(mut iter: I) -> Self {
-//         let first = iter.next().expect("must contain at least one Value");
-//         iter.fold(first, |acc, val| &acc + &val)
-//     }
-// }
+impl Sum for Value {
+    fn sum<I: Iterator<Item = Self>>(mut iter: I) -> Self {
+        let first = iter.next().expect("must contain at least one Value");
+        iter.fold(first, |acc, val| &acc + &val)
+    }
+}
 
