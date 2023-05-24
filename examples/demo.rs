@@ -16,8 +16,8 @@ fn main() {
 
     let t5 = NdArray::arange(0..4).reshape([2, 2]);
 
-    let t6: NdArray<i32, 1> = array!([1, 2, 3, 4]);
-    let t7 = array!([[3, 6], [9, 12]]);
+    let t6: NdArray<i32, 1> = array![1, 2, 3, 4];
+    let t7 = array![[3, 6], [9, 12]];
 
     let t8 = &t5 + &t1;
 
