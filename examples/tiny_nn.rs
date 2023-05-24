@@ -29,7 +29,7 @@ fn main() {
         println!("Epoch {} loss: {:?}", epoch, loss);
         loss.backward();
         let adjustment = weights.grad() * LR;
-        weights = &weights - &Tensor::new_from_f64(adjustment);
+        weights -= Tensor::new_from_f64(adjustment);
         weights.zero_grad();
     }
     let pred_data: Tensor<2> = tensor![[1.0, 0.0, 0.0]];

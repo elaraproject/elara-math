@@ -9,7 +9,7 @@ use crate::val;
 
 use std::{
     fmt::Debug,
-    ops::{Add, Mul, Sub, Index},
+    ops::{Add, Mul, Sub, Index, AddAssign, SubAssign},
 };
 
 #[macro_export]
@@ -66,6 +66,10 @@ impl<const N: usize> Tensor<N> {
             data: gradients,
             shape: self.0.shape
         }
+    }
+
+    pub fn set_data(&mut self, array: NdArray<Value, N>) {
+        self.0 = array;
     }
 
     pub fn to_ndarray(&self) -> NdArray<f64, N> {
@@ -162,6 +166,14 @@ impl<const N: usize> Add<Tensor<N>> for Tensor<N> {
     }
 }
 
+// Elementwise addassign without reference
+impl<const N: usize> AddAssign<Tensor<N>> for Tensor<N> {
+    fn add_assign(&mut self, rhs: Tensor<N>) {
+        let addassign_arr = &self.0 + &rhs.0;
+        self.set_data(addassign_arr)
+    }
+}
+
 // Elementwise subtraction by reference
 impl<const N: usize> Sub<&Tensor<N>> for &Tensor<N> {
     type Output = Tensor<N>;
@@ -176,6 +188,14 @@ impl<const N: usize> Sub<&Tensor<N>> for Tensor<N> {
     fn sub(self, rhs: &Tensor<N>) -> Self::Output {
         &self - &rhs
     } 
+}
+
+// Elementwise subtract assign without reference
+impl<const N: usize> SubAssign<Tensor<N>> for Tensor<N> {
+    fn sub_assign(&mut self, rhs: Tensor<N>) {
+        let subassign_arr = &self.0 - &rhs.0;
+        self.set_data(subassign_arr)
+    }
 }
 
 // Elementwise multiplication by reference
