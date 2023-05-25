@@ -81,7 +81,7 @@ impl<const N: usize> Tensor<N> {
     }
 
     pub fn shape(&self) -> [usize; N] {
-        self.0.shape.clone()
+        self.0.shape
     }
     
     pub fn reshape(&mut self, shape: [usize; N]) -> Tensor<N> {
@@ -130,7 +130,7 @@ impl Tensor<2> {
     	assert_eq!(self.0.shape[1], b.0.shape[0]);
         let a_array = &self.0;
         let b_array = &b.0;
-        let res = a_array.matmul(&b_array);
+        let res = a_array.matmul(b_array);
         let res: NdArray<Value, 2> = res.mapv(|val| val!(val));
         Tensor(res)
     }
@@ -186,7 +186,7 @@ impl<const N: usize> Sub<&Tensor<N>> for &Tensor<N> {
 impl<const N: usize> Sub<&Tensor<N>> for Tensor<N> {
     type Output = Tensor<N>;
     fn sub(self, rhs: &Tensor<N>) -> Self::Output {
-        &self - &rhs
+        &self - rhs
     } 
 }
 

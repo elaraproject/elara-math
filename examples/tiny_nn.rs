@@ -24,7 +24,7 @@ fn main() {
     let mut weights = Tensor::rand([3, 1]);
     println!("Weights before training: {:?}", weights);
     for epoch in 0..EPOCHS {
-        let output = (&train_data.matmul(&weights)).sigmoid();
+        let output = train_data.matmul(&weights).sigmoid();
         let mut loss = elara_math::mse(&output, &train_labels);
         println!("Epoch {} loss: {:?}", epoch, loss);
         loss.backward();
