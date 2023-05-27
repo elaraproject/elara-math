@@ -153,6 +153,18 @@ impl<const N: usize> Tensor<N> {
         out
     }
     
+    pub fn sigmoid(&self) -> Tensor<N> {
+        let sigmoid_array = self.borrow().data.mapv(|val| 1.0 / (1.0 + (-val).exp()));
+        let out = Tensor::new(sigmoid_array);
+        out.borrow_mut().prev = vec![self.clone()];
+        out.borrow_mut().op = Some(String::from("exp"));
+        out.borrow_mut().backward = Some(|value: &TensorData<N>| {
+            let prev = value.prev[0].borrow().data.clone();
+            value.prev[0].borrow_mut().grad += prev.mapv(|val| val.exp() / (1.0 + val.exp()).powf(2.0));
+        });
+        out
+    }
+    
     pub fn index_mut(&mut self, idx: &[usize; N]) -> f64 {
         self.borrow_mut().data[idx]
     }
