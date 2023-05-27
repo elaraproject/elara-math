@@ -9,6 +9,7 @@ use std::{
     hash::{Hash, Hasher},
     fmt::Debug,
     ops::{Add, Mul, Sub, Index, AddAssign, SubAssign, Deref, DerefMut}, rc::Rc,
+    iter::Sum
 };
 
 use uuid::Uuid;
@@ -108,6 +109,25 @@ impl<const N: usize> Tensor<N> {
     pub fn reshape(&mut self, shape: [usize; N]) -> Tensor<N> {
         Tensor::new(self.borrow().data.clone().reshape(shape))
     }
+    
+    pub fn index(&self, idx: &[usize; N]) -> f64 {
+        self.borrow().data[idx]
+    }
+    
+    pub fn sum(&self) -> Tensor<N> {
+        let sum = self.borrow().data.sum();
+        let out = Tensor::from_f64(sum);
+        out.borrow_mut().prev = vec![self.clone()];
+        out.borrow_mut().op = Some(String::from("sum"));
+        out.borrow_mut().backward = Some(|value: &TensorData<N>| {
+            value.prev[0].borrow_mut().grad += value.grad.clone() * NdArray::ones(value.data.shape);
+        });
+        out
+    }
+    
+    pub fn index_mut(&mut self, idx: &[usize; N]) -> f64 {
+        self.borrow_mut().data[idx]
+    }
 
     // pub fn data(&self) -> impl Deref<Target = NdArray<f64, N>> + '_ {
     //     Ref::map((*self.0).borrow(), |mi| &mi.data)
@@ -156,6 +176,24 @@ impl<const N: usize> Debug for Tensor<N> {
     }
 }
 
+impl Tensor<2> {
+    pub fn matmul(&self, rhs: &Tensor<2>) -> Tensor<2> {
+        let a_shape = self.shape();
+        let b_shape = rhs.shape();
+        assert_eq!(a_shape[1], b_shape[0]);
+    	let res: NdArray<f64, 2> = self.borrow().data.matmul(&rhs.borrow().data);
+        let out = Tensor::new(res);
+        out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
+        out.borrow_mut().op = Some(String::from("matmul"));
+        out.borrow_mut().backward = Some(|value: &TensorData<2>| {
+            let a_data = value.prev[0].borrow().data.clone();
+            let b_data = value.prev[1].borrow().data.clone();
+            value.prev[0].borrow_mut().grad += b_data * value.grad.clone();
+            value.prev[1].borrow_mut().grad += a_data * value.grad.clone();
+        });
+        out
+    }
+}
 
 // Elementwise addition by reference
 impl<const N: usize> Add<&Tensor<N>> for &Tensor<N> {
