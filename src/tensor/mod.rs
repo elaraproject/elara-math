@@ -120,7 +120,35 @@ impl<const N: usize> Tensor<N> {
         out.borrow_mut().prev = vec![self.clone()];
         out.borrow_mut().op = Some(String::from("sum"));
         out.borrow_mut().backward = Some(|value: &TensorData<N>| {
-            value.prev[0].borrow_mut().grad += value.grad.clone() * NdArray::ones(value.data.shape);
+            // let shape = value.prev[0].borrow().data.shape.clone();
+            // value.prev[0].borrow_mut().grad += value.grad.clone() * NdArray::ones(shape);
+            value.prev[0].borrow_mut().grad += value.grad.clone();
+        });
+        out
+    }
+    
+    pub fn exp(&self) -> Tensor<N> {
+        let exp_array = self.borrow().data.mapv(|val| val.exp());
+        let out = Tensor::new(exp_array);
+        out.borrow_mut().prev = vec![self.clone()];
+        out.borrow_mut().op = Some(String::from("exp"));
+        out.borrow_mut().backward = Some(|value: &TensorData<N>| {
+            let prev = value.prev[0].borrow().data.clone();
+            value.prev[0].borrow_mut().grad += prev.mapv(|val| val.exp());
+        });
+        out
+    }
+    
+    pub fn pow(&self, power: f64) -> Tensor<N> {
+        let pow_array = self.borrow().data.mapv(|val| val.powf(power));
+        let out = Tensor::new(pow_array);
+        out.borrow_mut().prev = vec![self.clone(), Tensor::from_f64(power)];
+        out.borrow_mut().op = Some(String::from("^"));
+        out.borrow_mut().backward = Some(|value: &TensorData<N>| {
+            let base = value.prev[0].borrow().data.clone();
+            let p = value.prev[1].borrow().data.clone();
+            let base_vec = base.mapv(|val| val.powf(p.first().unwrap() - 1.0));
+            value.prev[0].borrow_mut().grad += p * base_vec * value.grad.clone();
         });
         out
     }

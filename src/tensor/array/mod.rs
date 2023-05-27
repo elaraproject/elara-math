@@ -109,6 +109,10 @@ impl<T: Clone, const N: usize> NdArray<T, N> {
         self.data.iter()
     }
     
+    pub fn first(&self) -> Option<&T> {
+        self.data.first()
+    }
+    
     pub fn mapv<B, F>(&self, f: F) -> NdArray<B, N>
     where T: Clone,
           F: FnMut(T) -> B,
