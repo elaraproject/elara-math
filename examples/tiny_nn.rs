@@ -25,15 +25,15 @@ fn main() {
     println!("Weights before training: {:?}", weights);
     for epoch in 0..EPOCHS {
         let output = train_data.matmul(&weights).sigmoid();
-        let mut loss = elara_math::mse(&output, &train_labels);
+        let loss = elara_math::mse(&output, &train_labels);
         println!("Epoch {} loss: {:?}", epoch, loss);
         loss.backward();
         let adjustment = weights.grad() * LR;
-        weights -= Tensor::new_from_f64(adjustment);
+        weights = weights - Tensor::new(adjustment);
         weights.zero_grad();
     }
     let pred_data: Tensor<2> = tensor![[1.0, 0.0, 0.0]];
     let pred = &pred_data.matmul(&weights).sigmoid();
     println!("Weights after training: {:?}", weights);
-    println!("Prediction [1, 0, 0] -> {:?}", pred.to_ndarray().data);
+    println!("Prediction [1, 0, 0] -> {:?}", pred.borrow().data);
 }

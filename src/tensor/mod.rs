@@ -194,6 +194,10 @@ impl<const N: usize> Tensor<N> {
         RefMut::map((*self.0).borrow_mut(), |mi| &mut mi.grad)
     }
 
+    pub fn zero_grad(&self) {
+        self.grad_mut().fill(0.0);
+    }
+
     pub fn backward(&self) {
         let mut topo: Vec<Tensor<N>> = vec![];
         let mut visited: HashSet<Tensor<N>> = HashSet::new();
@@ -237,8 +241,8 @@ impl Tensor<2> {
         out.borrow_mut().backward = Some(|value: &TensorData<2>| {
             let a_data = value.prev[0].borrow().data.clone();
             let b_data = value.prev[1].borrow().data.clone();
-            value.prev[0].borrow_mut().grad += b_data * value.grad.clone();
-            value.prev[1].borrow_mut().grad += a_data * value.grad.clone();
+            value.prev[0].borrow_mut().grad = value.grad.clone().matmul(&b_data.transpose());
+            value.prev[1].borrow_mut().grad = a_data.transpose().matmul(&value.grad.clone());
         });
         out
     }
@@ -279,6 +283,14 @@ impl<const N: usize> Sub<&Tensor<N>> for &Tensor<N> {
             value.prev[1].borrow_mut().grad -= value.grad.clone();
         });
         out
+    }
+}
+
+// Elementwise subtraction without reerence
+impl<const N: usize> Sub<Tensor<N>> for Tensor<N> {
+    type Output = Tensor<N>;
+    fn sub(self, rhs: Tensor<N>) -> Self::Output {
+        &self - &rhs
     }
 }
 
