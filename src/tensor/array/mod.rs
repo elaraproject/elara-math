@@ -1,6 +1,6 @@
 use elara_log::prelude::*;
 use std::iter::{Product, Sum};
-use std::ops::{AddAssign, Deref};
+use std::ops::{AddAssign, SubAssign, Deref};
 use std::{
     fmt::Debug,
     ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub},
@@ -398,6 +398,31 @@ impl<T: Clone + Sub<Output = T>, const N: usize> Sub<&NdArray<T, N>> for &NdArra
             .collect();
 
         NdArray::from(difference_vec, self.shape)
+    }
+}
+
+// Elementwise subassign
+impl<T: Clone + Sub<Output = T>, const N: usize> SubAssign<&NdArray<T, N>> for &mut NdArray<T, N> {
+    fn sub_assign(&mut self, rhs: &NdArray<T, N>) {
+        let sub_vec = self
+            .data
+            .iter()
+            .zip(&rhs.data)
+            .map(|(a, b)| a.clone() - b.clone())
+            .collect();
+        self.data = sub_vec;
+    }
+}
+
+impl<T: Clone + Sub<Output = T>, const N: usize> SubAssign<NdArray<T, N>> for NdArray<T, N> {
+    fn sub_assign(&mut self, rhs: NdArray<T, N>) {
+        let sub_vec: Vec<T> = self
+            .data
+            .iter()
+            .zip(&rhs.data)
+            .map(|(a, b)| a.clone() - b.clone())
+            .collect();
+        self.data = sub_vec;
     }
 }
 

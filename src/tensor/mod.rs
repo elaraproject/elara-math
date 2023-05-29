@@ -8,7 +8,7 @@ use std::{
     collections::HashSet,
     hash::{Hash, Hasher},
     fmt::Debug,
-    ops::{Add, Mul, Sub, Index, AddAssign, SubAssign, Deref, DerefMut}, rc::Rc,
+    ops::{Add, Mul, Div, Sub, Index, AddAssign, SubAssign, Deref, DerefMut}, rc::Rc,
     iter::Sum
 };
 
@@ -114,6 +114,10 @@ impl<const N: usize> Tensor<N> {
         self.borrow().data[idx]
     }
     
+    pub fn len(&self) -> usize {
+        self.borrow().data.len()
+    }
+    
     pub fn sum(&self) -> Tensor<N> {
         let sum = self.borrow().data.sum();
         let out = Tensor::from_f64(sum);
@@ -125,6 +129,11 @@ impl<const N: usize> Tensor<N> {
             value.prev[0].borrow_mut().grad += value.grad.clone();
         });
         out
+    }
+    
+    pub fn mean(&self) -> Tensor<N> {
+        let len = Tensor::from_f64(self.len() as f64);
+        self.sum() / len
     }
     
     pub fn exp(&self) -> Tensor<N> {
@@ -258,6 +267,22 @@ impl<const N: usize> Add<Tensor<N>> for Tensor<N> {
     }
 }
 
+// Elementwise subtraction by reference
+impl<const N: usize> Sub<&Tensor<N>> for &Tensor<N> {
+    type Output = Tensor<N>;
+    fn sub(self, rhs: &Tensor<N>) -> Self::Output {
+        let out = Tensor::new(self.borrow().data.clone() + rhs.borrow().data.clone());
+        out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
+        out.borrow_mut().op = Some(String::from("-"));
+        out.borrow_mut().backward = Some(|value: &TensorData<N>| {
+            value.prev[0].borrow_mut().grad -= value.grad.clone();
+            value.prev[1].borrow_mut().grad -= value.grad.clone();
+        });
+        out
+    }
+}
+
+
 // Elementwise multiplication without reference
 impl<const N: usize> Mul<&Tensor<N>> for &Tensor<N> {
     type Output = Tensor<N>;
@@ -282,5 +307,22 @@ impl<const N: usize> Mul<Tensor<N>> for Tensor<N> {
 
     fn mul(self, rhs: Tensor<N>) -> Self::Output {
         &self * &rhs
+    }
+}
+
+// Elementwise division without reference
+impl<const N: usize> Div<&Tensor<N>> for &Tensor<N> {
+    type Output = Tensor<N>;
+    
+    fn div(self, rhs: &Tensor<N>) -> Self::Output {
+        self * &rhs.pow(-1.0)
+    }
+}
+
+impl<const N: usize> Div<Tensor<N>> for Tensor<N> {
+    type Output = Tensor<N>;
+    
+    fn div(self, rhs: Tensor<N>) -> Self::Output {
+        &self / &rhs
     }
 }
