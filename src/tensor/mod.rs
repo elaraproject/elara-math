@@ -124,9 +124,9 @@ impl Tensor {
         out.borrow_mut().prev = vec![self.clone()];
         out.borrow_mut().op = Some(String::from("sum"));
         out.borrow_mut().backward = Some(|value: &TensorData| {
-            // let shape = value.prev[0].borrow().data.shape.clone();
-            // value.prev[0].borrow_mut().grad += value.grad.clone() * NdArray::ones(shape);
-            value.prev[0].borrow_mut().grad += value.grad.clone();
+            let shape = value.prev[0].borrow().data.shape.clone();
+            value.prev[0].borrow_mut().grad += NdArray::ones(shape) * value.grad.first().unwrap().clone();
+            // value.prev[0].borrow_mut().grad += value.grad.clone();
         });
         out
     }
