@@ -10,7 +10,7 @@ pub use tensor::*;
 
 pub mod prelude;
 
-pub fn mse<const N: usize>(predicted: &Tensor<N>, target: &Tensor<N>) -> Tensor<N>
+pub fn mse<const N: usize>(predicted: &Tensor, target: &Tensor) -> Tensor
 {
     (target - predicted).pow(2.0).mean()
 }
