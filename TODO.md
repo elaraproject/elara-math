@@ -46,4 +46,5 @@
 - [ ] Refactoring
     - [x] Rewrite with generics
     - [ ] Implement `Debug` to print tensors
+    - [ ] Improve performance with 100% reference-based implementation and reduced number of clones
 - [ ] Benchmarks

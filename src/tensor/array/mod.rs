@@ -1,11 +1,10 @@
 use elara_log::prelude::*;
 use std::iter::{Product, Sum};
-use std::ops::AddAssign;
+use std::ops::{AddAssign, SubAssign, Deref};
 use std::{
     fmt::Debug,
     ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub},
 };
-use crate::{Value, val};
 use crate::num::randf;
 
 pub mod utils;
@@ -110,6 +109,10 @@ impl<T: Clone, const N: usize> NdArray<T, N> {
         self.data.iter()
     }
     
+    pub fn first(&self) -> Option<&T> {
+        self.data.first()
+    }
+    
     pub fn mapv<B, F>(&self, f: F) -> NdArray<B, N>
     where T: Clone,
           F: FnMut(T) -> B,
@@ -120,6 +123,10 @@ impl<T: Clone, const N: usize> NdArray<T, N> {
             data: data.into_iter().map(f).collect(),
             shape: self.shape
         }
+    }
+
+    pub fn fill(&mut self, val: T) {
+        self.data = vec![val; self.shape.iter().product()]
     }
 
     // Referenced https://codereview.stackexchange.com/questions/256345/n-dimensional-array-in-rust
@@ -260,22 +267,6 @@ impl NdArray<f64, 2> {
     }
 }
 
-impl NdArray<Value, 2> {
-    /// Finds the matrix product of 2 matrices of `Value`s - used for ML
-    pub fn matmul(&self, b: &NdArray<Value, 2>) -> NdArray<Value, 2> {
-        assert_eq!(self.shape[1], b.shape[0]);
-        let mut res: NdArray<Value, 2> = NdArray::zeros([self.shape[0], b.shape[1]]).mapv(|el: f64| val!(el));
-    	for row in 0..self.shape[0] {
-    		for col in 0..b.shape[1] {
-    			for el in 0..b.shape[0] {
-    				res[&[row, col]] += self[&[row, el]].clone() * b[&[el, col]].clone()
-    			}
-    		}
-    	}
-        res
-    }
-}
-
 // Referenced https://codereview.stackexchange.com/questions/256345/n-dimensional-array-in-rust
 impl<T: Clone, const N: usize> Index<&[usize; N]> for NdArray<T, N> {
     type Output = T;
@@ -407,6 +398,31 @@ impl<T: Clone + Sub<Output = T>, const N: usize> Sub<&NdArray<T, N>> for &NdArra
             .collect();
 
         NdArray::from(difference_vec, self.shape)
+    }
+}
+
+// Elementwise subassign
+impl<T: Clone + Sub<Output = T>, const N: usize> SubAssign<&NdArray<T, N>> for &mut NdArray<T, N> {
+    fn sub_assign(&mut self, rhs: &NdArray<T, N>) {
+        let sub_vec = self
+            .data
+            .iter()
+            .zip(&rhs.data)
+            .map(|(a, b)| a.clone() - b.clone())
+            .collect();
+        self.data = sub_vec;
+    }
+}
+
+impl<T: Clone + Sub<Output = T>, const N: usize> SubAssign<NdArray<T, N>> for NdArray<T, N> {
+    fn sub_assign(&mut self, rhs: NdArray<T, N>) {
+        let sub_vec: Vec<T> = self
+            .data
+            .iter()
+            .zip(&rhs.data)
+            .map(|(a, b)| a.clone() - b.clone())
+            .collect();
+        self.data = sub_vec;
     }
 }
 

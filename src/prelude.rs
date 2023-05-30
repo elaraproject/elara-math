@@ -1,1 +1,1 @@
-pub use crate::{tensor, val, array, Value, Tensor, NdArray};
+pub use crate::{tensor, array, Tensor, NdArray};
