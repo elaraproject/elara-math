@@ -101,6 +101,10 @@ impl Tensor {
     pub fn from_f64(val: f64) -> Tensor {
         Tensor::new(array![[val]])
     }
+    
+    pub fn arange<I: Iterator<Item = i32>>(range: I) -> Tensor {
+        Tensor::new(NdArray::arange(range).mapv(|el| el as f64))
+    }
 
     pub fn grad(&self) -> NdArray<f64, 2> {
         self.borrow().grad.clone()
@@ -144,6 +148,19 @@ impl Tensor {
         out.borrow_mut().backward = Some(|value: &TensorData| {
             let prev = value.prev[0].borrow().data.clone();
             value.prev[0].borrow_mut().grad += prev.mapv(|val| val.exp());
+        });
+        out
+    }
+    
+    pub fn relu(&self) -> Tensor {
+        let relu_array = self.borrow().data.mapv(|val| val.max(0.0));
+        let out = Tensor::new(relu_array);
+        out.borrow_mut().prev = vec![self.clone()];
+        out.borrow_mut().op = Some(String::from("ReLU"));
+        out.borrow_mut().backward = Some(|value: &TensorData| {
+            let shape = value.prev[0].borrow().data.shape;
+            let zero_array = NdArray::zeros(shape);
+            value.prev[0].borrow_mut().grad += if value.data > zero_array { value.grad.clone() } else { zero_array };
         });
         out
     }
