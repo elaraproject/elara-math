@@ -12,30 +12,36 @@ Elara Math is a Rust-native math library, with (current or planned support for):
 As an example, here is a working tiny neural network using `elara-math`.
 
 ```rs
-use elara_math::{Tensor, sigmoid, sigmoid_d};
+use elara_math::prelude::*;
+
+const EPOCHS: usize = 10000;
+const LR: f64 = 0.01;
 
 fn main() {
-    let train_data = Tensor::new(&[
-        0.0, 0.0, 1.0,
-        1.0, 1.0, 1.0,
-        1.0, 0.0, 1.0,
-        0.0, 1.0, 1.0], [4, 3]);
-    let train_labels = Tensor::new(&[
-    	0.0,
-    	1.0,
-    	1.0,
-    	0.0], [1, 4]).t();
-    let mut weights = Tensor::random([3, 1]) * 2.0 - 1.0;
-    for _ in 0..10000 {
-        let output = sigmoid(&train_data.matmul(&weights));
-        let error = &train_labels - &output;
-        let m = error * sigmoid_d(&output);
-        let adjustment = train_data.t().matmul(&m);
-        weights = weights + adjustment;
+    let train_data = tensor![
+        [0.0, 0.0, 1.0],
+        [1.0, 1.0, 1.0],
+        [1.0, 0.0, 1.0],
+        [0.0, 1.0, 1.0]];
+    let train_labels = tensor![
+        [0.0],
+        [1.0],
+        [1.0],
+        [0.0]
+    ].reshape([4, 1]);
+    let mut weights = Tensor::rand([3, 1]);
+    for epoch in 0..EPOCHS {
+        let output = train_data.matmul(&weights).sigmoid();
+        let loss = elara_math::mse(&output, &train_labels);
+        println!("Epoch {}, loss: {:?}", epoch, loss);
+        loss.backward();
+        let adjustment = weights.grad() * LR;
+        weights = weights - Tensor::new(adjustment);
+        weights.zero_grad();
     }
-    let pred_data: Tensor<f64, 2> = Tensor::new(&[1.0, 0.0, 0.0], [1, 3]);
-    let pred = sigmoid(&pred_data.matmul(&weights));
-    println!("Prediction [1, 0, 0] -> {:?}", pred.data[0]);
+    let pred_data = tensor![[1.0, 0.0, 0.0]];
+    let pred = &pred_data.matmul(&weights).sigmoid();
+    println!("Prediction [1, 0, 0] -> {:?}", pred.borrow().data);
 }
 ```
 
@@ -44,7 +50,7 @@ fn main() {
 To develop `elara-math`, first clone the repository:
 
 ```
-git clone https://github.com/elaraproject/elara-gfx
+git clone https://github.com/elaraproject/elara-math
 ```
 
 Then, copy over the pre-commit githook:
