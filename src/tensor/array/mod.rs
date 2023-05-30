@@ -23,7 +23,7 @@ macro_rules! array {
 
 /// A general NdArray (multi-dimensional differentiable
 /// array type)
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
 pub struct NdArray<T: Clone, const N: usize> {
     pub shape: [usize; N],
     pub data: Vec<T>,
