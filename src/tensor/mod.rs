@@ -147,7 +147,10 @@ impl Tensor {
         });
         out
     }
-    
+
+    // WARNING: power function breaks easily and is hacked together with bits
+    // and pieces from a soul that is haunted with weeks of midnight code
+    // NEEDS TO BE REWRITTEN!!!
     pub fn pow(&self, power: f64) -> Tensor {
         let pow_array = self.borrow().data.mapv(|val| val.powf(power));
         let out = Tensor::new(pow_array);
@@ -245,7 +248,7 @@ impl Tensor {
 // TODO: better printing of tensors
 impl Debug for Tensor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Tensor({:?}, shape={:?})", self.borrow().data.clone(), self.shape())
+        write!(f, "Tensor({:?}, shape={:?})", self.borrow().data.data.clone(), self.shape())
     }
 }
 
@@ -254,6 +257,7 @@ impl Debug for Tensor {
 impl Add<&Tensor> for &Tensor {
     type Output = Tensor;
     fn add(self, rhs: &Tensor) -> Self::Output {
+        
         let out = Tensor::new(self.borrow().data.clone() + rhs.borrow().data.clone());
         out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
         out.borrow_mut().op = Some(String::from("+"));
@@ -277,7 +281,7 @@ impl Add<Tensor> for Tensor {
 impl Sub<&Tensor> for &Tensor {
     type Output = Tensor;
     fn sub(self, rhs: &Tensor) -> Self::Output {
-        let out = Tensor::new(self.borrow().data.clone() + rhs.borrow().data.clone());
+        let out = Tensor::new(self.borrow().data.clone() - rhs.borrow().data.clone());
         out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
         out.borrow_mut().op = Some(String::from("-"));
         out.borrow_mut().backward = Some(|value: &TensorData| {
