@@ -5,7 +5,7 @@ fn main() {
     // Initialize logging library
     Logger::new().init().unwrap();
 
-    let x: Tensor<1> = tensor![3.0];
+    let x = tensor![[3.0]];
     let y = &x * &x;
 
     y.backward();
