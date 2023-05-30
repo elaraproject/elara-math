@@ -1,6 +1,6 @@
 use elara_log::prelude::*;
 use std::iter::{Product, Sum};
-use std::ops::{AddAssign, SubAssign, Deref};
+use std::ops::{AddAssign, SubAssign};
 use std::{
     fmt::Debug,
     ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub},

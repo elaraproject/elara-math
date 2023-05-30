@@ -4,11 +4,11 @@ pub use array::{NdArray, utils::*};
 use crate::array;
 
 use std::{
-    cell::{RefCell, Ref, RefMut},
+    cell::{RefCell, RefMut},
     collections::HashSet,
     hash::{Hash, Hasher},
     fmt::Debug,
-    ops::{Add, Mul, Div, Sub, Index, AddAssign, SubAssign, Deref, DerefMut}, rc::Rc,
+    ops::{Add, Mul, Div, Sub, Deref, DerefMut}, rc::Rc,
     iter::Sum
 };
 
@@ -72,7 +72,7 @@ impl DerefMut for Tensor {
 
 impl TensorData {
     fn new(data: NdArray<f64, 2>) -> TensorData {
-        let shape = data.shape.clone();
+        let shape = data.shape;
         TensorData {
             data, 
             grad: NdArray::zeros(shape),
@@ -124,8 +124,8 @@ impl Tensor {
         out.borrow_mut().prev = vec![self.clone()];
         out.borrow_mut().op = Some(String::from("sum"));
         out.borrow_mut().backward = Some(|value: &TensorData| {
-            let shape = value.prev[0].borrow().data.shape.clone();
-            value.prev[0].borrow_mut().grad += NdArray::ones(shape) * value.grad.first().unwrap().clone();
+            let shape = value.prev[0].borrow().data.shape;
+            value.prev[0].borrow_mut().grad += NdArray::ones(shape) * *value.grad.first().unwrap();
             // value.prev[0].borrow_mut().grad += value.grad.clone();
         });
         out
