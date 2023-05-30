@@ -31,47 +31,47 @@ macro_rules! scalar {
     }
 }
 
-pub struct TensorData<const N: usize> {
-    pub data: NdArray<f64, N>,
-    pub grad: NdArray<f64, N>,
+pub struct TensorData {
+    pub data: NdArray<f64, 2>,
+    pub grad: NdArray<f64, 2>,
     pub uuid: Uuid,
-    backward: Option<fn(&TensorData<N>)>,
-    prev: Vec<Tensor<N>>,
+    backward: Option<fn(&TensorData)>,
+    prev: Vec<Tensor>,
     op: Option<String>
 }
 
 #[derive(Clone)]
-pub struct Tensor<const N: usize>(Rc<RefCell<TensorData<N>>>);
+pub struct Tensor(Rc<RefCell<TensorData>>);
 
-impl<const N: usize> Hash for Tensor<N> {
+impl Hash for Tensor {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.borrow().uuid.hash(state);
     }
 }
 
-impl<const N: usize> PartialEq for Tensor<N> {
+impl PartialEq for Tensor {
     fn eq(&self, other: &Self) -> bool {
         self.borrow().uuid == other.borrow().uuid
     }
 }
 
-impl<const N: usize> Eq for Tensor<N> {}
+impl Eq for Tensor {}
 
-impl<const N: usize> Deref for Tensor<N> {
-    type Target = Rc<RefCell<TensorData<N>>>;
+impl Deref for Tensor {
+    type Target = Rc<RefCell<TensorData>>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<const N: usize> DerefMut for Tensor<N> {
+impl DerefMut for Tensor {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<const N: usize> TensorData<N> {
-    fn new(data: NdArray<f64, N>) -> TensorData<N> {
+impl TensorData {
+    fn new(data: NdArray<f64, 2>) -> TensorData {
         let shape = data.shape.clone();
         TensorData {
             data, 
@@ -84,33 +84,33 @@ impl<const N: usize> TensorData<N> {
     }
 }
 
-impl<const N: usize> Tensor<N> {
-    pub fn new(array: NdArray<f64, N>) -> Tensor<N> {
+impl Tensor {
+    pub fn new(array: NdArray<f64, 2>) -> Tensor {
         Tensor(Rc::new(RefCell::new(TensorData::new(array))))
     }
 
-    pub fn shape(&self) -> [usize; N] {
+    pub fn shape(&self) -> [usize; 2] {
         self.borrow().data.shape
     }
 
-    pub fn rand(shape: [usize; N]) -> Tensor<N> {
+    pub fn rand(shape: [usize; 2]) -> Tensor {
         let arr = NdArray::random(shape);
         Tensor::new(arr)
     }
 
-    pub fn from_f64(val: f64) -> Tensor<N> {
-        Tensor::new(array!(val))
+    pub fn from_f64(val: f64) -> Tensor {
+        Tensor::new(array![[val]])
     }
 
-    pub fn grad(&self) -> NdArray<f64, N> {
+    pub fn grad(&self) -> NdArray<f64, 2> {
         self.borrow().grad.clone()
     }
 
-    pub fn reshape(&mut self, shape: [usize; N]) -> Tensor<N> {
+    pub fn reshape(&mut self, shape: [usize; 2]) -> Tensor {
         Tensor::new(self.borrow().data.clone().reshape(shape))
     }
     
-    pub fn index(&self, idx: &[usize; N]) -> f64 {
+    pub fn index(&self, idx: &[usize; 2]) -> f64 {
         self.borrow().data[idx]
     }
     
@@ -118,42 +118,45 @@ impl<const N: usize> Tensor<N> {
         self.borrow().data.len()
     }
     
-    pub fn sum(&self) -> Tensor<N> {
+    pub fn sum(&self) -> Tensor {
         let sum = self.borrow().data.sum();
         let out = Tensor::from_f64(sum);
         out.borrow_mut().prev = vec![self.clone()];
         out.borrow_mut().op = Some(String::from("sum"));
-        out.borrow_mut().backward = Some(|value: &TensorData<N>| {
-            // let shape = value.prev[0].borrow().data.shape.clone();
-            // value.prev[0].borrow_mut().grad += value.grad.clone() * NdArray::ones(shape);
-            value.prev[0].borrow_mut().grad += value.grad.clone();
+        out.borrow_mut().backward = Some(|value: &TensorData| {
+            let shape = value.prev[0].borrow().data.shape.clone();
+            value.prev[0].borrow_mut().grad += NdArray::ones(shape) * value.grad.first().unwrap().clone();
+            // value.prev[0].borrow_mut().grad += value.grad.clone();
         });
         out
     }
     
-    pub fn mean(&self) -> Tensor<N> {
+    pub fn mean(&self) -> Tensor {
         let len = Tensor::from_f64(self.len() as f64);
         self.sum() / len
     }
     
-    pub fn exp(&self) -> Tensor<N> {
+    pub fn exp(&self) -> Tensor {
         let exp_array = self.borrow().data.mapv(|val| val.exp());
         let out = Tensor::new(exp_array);
         out.borrow_mut().prev = vec![self.clone()];
         out.borrow_mut().op = Some(String::from("exp"));
-        out.borrow_mut().backward = Some(|value: &TensorData<N>| {
+        out.borrow_mut().backward = Some(|value: &TensorData| {
             let prev = value.prev[0].borrow().data.clone();
             value.prev[0].borrow_mut().grad += prev.mapv(|val| val.exp());
         });
         out
     }
-    
-    pub fn pow(&self, power: f64) -> Tensor<N> {
+
+    // WARNING: power function breaks easily and is hacked together with bits
+    // and pieces from a soul that is haunted with weeks of midnight code
+    // NEEDS TO BE REWRITTEN!!!
+    pub fn pow(&self, power: f64) -> Tensor {
         let pow_array = self.borrow().data.mapv(|val| val.powf(power));
         let out = Tensor::new(pow_array);
         out.borrow_mut().prev = vec![self.clone(), Tensor::from_f64(power)];
         out.borrow_mut().op = Some(String::from("^"));
-        out.borrow_mut().backward = Some(|value: &TensorData<N>| {
+        out.borrow_mut().backward = Some(|value: &TensorData| {
             let base = value.prev[0].borrow().data.clone();
             let p = value.prev[1].borrow().data.clone();
             let base_vec = base.mapv(|val| val.powf(p.first().unwrap() - 1.0));
@@ -162,19 +165,39 @@ impl<const N: usize> Tensor<N> {
         out
     }
     
-    pub fn sigmoid(&self) -> Tensor<N> {
+    pub fn sigmoid(&self) -> Tensor {
         let sigmoid_array = self.borrow().data.mapv(|val| 1.0 / (1.0 + (-val).exp()));
         let out = Tensor::new(sigmoid_array);
         out.borrow_mut().prev = vec![self.clone()];
         out.borrow_mut().op = Some(String::from("exp"));
-        out.borrow_mut().backward = Some(|value: &TensorData<N>| {
+        out.borrow_mut().backward = Some(|value: &TensorData| {
             let prev = value.prev[0].borrow().data.clone();
             value.prev[0].borrow_mut().grad += prev.mapv(|val| val.exp() / (1.0 + val.exp()).powf(2.0));
         });
         out
     }
+
+
+    pub fn matmul(&self, rhs: &Tensor) -> Tensor {
+        let a_shape = self.shape();
+        let b_shape = rhs.shape();
+        assert_eq!(a_shape[1], b_shape[0]);
+    	let res: NdArray<f64, 2> = self.borrow().data.matmul(&rhs.borrow().data);
+        let out = Tensor::new(res);
+        out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
+        out.borrow_mut().op = Some(String::from("matmul"));
+        out.borrow_mut().backward = Some(|value: &TensorData| {
+            let lhs = value.prev[0].borrow().data.clone();
+            let rhs = value.prev[1].borrow().data.clone();
+            let da = value.grad.clone().matmul(&rhs.transpose());
+            let db = lhs.transpose().matmul(&value.grad.clone());
+            value.prev[0].borrow_mut().grad += da;
+            value.prev[1].borrow_mut().grad += db;
+        });
+        out
+    }
     
-    pub fn index_mut(&mut self, idx: &[usize; N]) -> f64 {
+    pub fn index_mut(&mut self, idx: &[usize; 2]) -> f64 {
         self.borrow_mut().data[idx]
     }
 
@@ -190,7 +213,7 @@ impl<const N: usize> Tensor<N> {
     //     Ref::map((*self.0).borrow(), |mi| &mi.grad)
     // }
 
-    pub fn grad_mut(&self) -> impl DerefMut<Target = NdArray<f64, N>> + '_ {
+    pub fn grad_mut(&self) -> impl DerefMut<Target = NdArray<f64, 2>> + '_ {
         RefMut::map((*self.0).borrow_mut(), |mi| &mut mi.grad)
     }
 
@@ -199,8 +222,8 @@ impl<const N: usize> Tensor<N> {
     }
 
     pub fn backward(&self) {
-        let mut topo: Vec<Tensor<N>> = vec![];
-        let mut visited: HashSet<Tensor<N>> = HashSet::new();
+        let mut topo: Vec<Tensor> = vec![];
+        let mut visited: HashSet<Tensor> = HashSet::new();
         self._build_topo(&mut topo, &mut visited);
         topo.reverse();
 
@@ -212,7 +235,7 @@ impl<const N: usize> Tensor<N> {
         }
     }
 
-    fn _build_topo(&self, topo: &mut Vec<Tensor<N>>, visited: &mut HashSet<Tensor<N>>) {
+    fn _build_topo(&self, topo: &mut Vec<Tensor>, visited: &mut HashSet<Tensor>) {
         if visited.insert(self.clone()) {
             self.borrow().prev.iter().for_each(|child| {
                 child._build_topo(topo, visited);
@@ -223,39 +246,22 @@ impl<const N: usize> Tensor<N> {
 }
 
 // TODO: better printing of tensors
-impl<const N: usize> Debug for Tensor<N> {
+impl Debug for Tensor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Tensor({:?}, shape={:?})", self.borrow().data.clone(), self.shape())
+        write!(f, "Tensor({:?}, shape={:?})", self.borrow().data.data.clone(), self.shape())
     }
 }
 
-impl Tensor<2> {
-    pub fn matmul(&self, rhs: &Tensor<2>) -> Tensor<2> {
-        let a_shape = self.shape();
-        let b_shape = rhs.shape();
-        assert_eq!(a_shape[1], b_shape[0]);
-    	let res: NdArray<f64, 2> = self.borrow().data.matmul(&rhs.borrow().data);
-        let out = Tensor::new(res);
-        out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
-        out.borrow_mut().op = Some(String::from("matmul"));
-        out.borrow_mut().backward = Some(|value: &TensorData<2>| {
-            let a_data = value.prev[0].borrow().data.clone();
-            let b_data = value.prev[1].borrow().data.clone();
-            value.prev[0].borrow_mut().grad = value.grad.clone().matmul(&b_data.transpose());
-            value.prev[1].borrow_mut().grad = a_data.transpose().matmul(&value.grad.clone());
-        });
-        out
-    }
-}
 
 // Elementwise addition by reference
-impl<const N: usize> Add<&Tensor<N>> for &Tensor<N> {
-    type Output = Tensor<N>;
-    fn add(self, rhs: &Tensor<N>) -> Self::Output {
+impl Add<&Tensor> for &Tensor {
+    type Output = Tensor;
+    fn add(self, rhs: &Tensor) -> Self::Output {
+        
         let out = Tensor::new(self.borrow().data.clone() + rhs.borrow().data.clone());
         out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
         out.borrow_mut().op = Some(String::from("+"));
-        out.borrow_mut().backward = Some(|value: &TensorData<N>| {
+        out.borrow_mut().backward = Some(|value: &TensorData| {
             value.prev[0].borrow_mut().grad += value.grad.clone();
             value.prev[1].borrow_mut().grad += value.grad.clone();
         });
@@ -264,21 +270,21 @@ impl<const N: usize> Add<&Tensor<N>> for &Tensor<N> {
 }
 
 // Elementwise addition without reference
-impl<const N: usize> Add<Tensor<N>> for Tensor<N> {
-    type Output = Tensor<N>;
-    fn add(self, rhs: Tensor<N>) -> Self::Output {
+impl Add<Tensor> for Tensor {
+    type Output = Tensor;
+    fn add(self, rhs: Tensor) -> Self::Output {
         &self + &rhs
     }
 }
 
 // Elementwise subtraction by reference
-impl<const N: usize> Sub<&Tensor<N>> for &Tensor<N> {
-    type Output = Tensor<N>;
-    fn sub(self, rhs: &Tensor<N>) -> Self::Output {
-        let out = Tensor::new(self.borrow().data.clone() + rhs.borrow().data.clone());
+impl Sub<&Tensor> for &Tensor {
+    type Output = Tensor;
+    fn sub(self, rhs: &Tensor) -> Self::Output {
+        let out = Tensor::new(self.borrow().data.clone() - rhs.borrow().data.clone());
         out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
         out.borrow_mut().op = Some(String::from("-"));
-        out.borrow_mut().backward = Some(|value: &TensorData<N>| {
+        out.borrow_mut().backward = Some(|value: &TensorData| {
             value.prev[0].borrow_mut().grad -= value.grad.clone();
             value.prev[1].borrow_mut().grad -= value.grad.clone();
         });
@@ -287,23 +293,23 @@ impl<const N: usize> Sub<&Tensor<N>> for &Tensor<N> {
 }
 
 // Elementwise subtraction without reerence
-impl<const N: usize> Sub<Tensor<N>> for Tensor<N> {
-    type Output = Tensor<N>;
-    fn sub(self, rhs: Tensor<N>) -> Self::Output {
+impl Sub<Tensor> for Tensor {
+    type Output = Tensor;
+    fn sub(self, rhs: Tensor) -> Self::Output {
         &self - &rhs
     }
 }
 
 
 // Elementwise multiplication without reference
-impl<const N: usize> Mul<&Tensor<N>> for &Tensor<N> {
-    type Output = Tensor<N>;
+impl Mul<&Tensor> for &Tensor {
+    type Output = Tensor;
 
-    fn mul(self, rhs: &Tensor<N>) -> Self::Output {
+    fn mul(self, rhs: &Tensor) -> Self::Output {
         let out = Tensor::new(self.borrow().data.clone() * rhs.borrow().data.clone());
         out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
         out.borrow_mut().op = Some(String::from("×"));
-        out.borrow_mut().backward = Some(|value: &TensorData<N>| {
+        out.borrow_mut().backward = Some(|value: &TensorData| {
             let a_data = value.prev[0].borrow().data.clone();
             let b_data = value.prev[1].borrow().data.clone();
             value.prev[0].borrow_mut().grad += b_data * value.grad.clone();
@@ -314,27 +320,27 @@ impl<const N: usize> Mul<&Tensor<N>> for &Tensor<N> {
 }
 
 // Elementwise multiplication without reference
-impl<const N: usize> Mul<Tensor<N>> for Tensor<N> {
-    type Output = Tensor<N>;
+impl Mul<Tensor> for Tensor {
+    type Output = Tensor;
 
-    fn mul(self, rhs: Tensor<N>) -> Self::Output {
+    fn mul(self, rhs: Tensor) -> Self::Output {
         &self * &rhs
     }
 }
 
 // Elementwise division without reference
-impl<const N: usize> Div<&Tensor<N>> for &Tensor<N> {
-    type Output = Tensor<N>;
+impl Div<&Tensor> for &Tensor {
+    type Output = Tensor;
     
-    fn div(self, rhs: &Tensor<N>) -> Self::Output {
+    fn div(self, rhs: &Tensor) -> Self::Output {
         self * &rhs.pow(-1.0)
     }
 }
 
-impl<const N: usize> Div<Tensor<N>> for Tensor<N> {
-    type Output = Tensor<N>;
+impl Div<Tensor> for Tensor {
+    type Output = Tensor;
     
-    fn div(self, rhs: Tensor<N>) -> Self::Output {
+    fn div(self, rhs: Tensor) -> Self::Output {
         &self / &rhs
     }
 }
