@@ -168,18 +168,19 @@ impl Tensor {
     // WARNING: power function breaks easily and is hacked together with bits
     // and pieces from a soul that is haunted with weeks of midnight code
     // NEEDS TO BE REWRITTEN!!!
-    pub fn pow(&self, power: f64) -> Tensor {
-        let pow_array = self.borrow().data.mapv(|val| val.powf(power));
-        let out = Tensor::new(pow_array);
-        out.borrow_mut().prev = vec![self.clone(), Tensor::from_f64(power)];
-        out.borrow_mut().op = Some(String::from("^"));
-        out.borrow_mut().backward = Some(|value: &TensorData| {
-            let base = value.prev[0].borrow().data.clone();
-            let p = value.prev[1].borrow().data.clone();
-            let base_vec = base.mapv(|val| val.powf(p.first().unwrap() - 1.0));
-            value.prev[0].borrow_mut().grad += p * base_vec * value.grad.clone();
-        });
-        out
+    pub fn pow(&self, power: f64) {
+        unimplemented!("pow() is not yet workable at the moment");
+        // let pow_array = self.borrow().data.mapv(|val| val.powf(power));
+        // let out = Tensor::new(pow_array);
+        // out.borrow_mut().prev = vec![self.clone(), Tensor::from_f64(power)];
+        // out.borrow_mut().op = Some(String::from("^"));
+        // out.borrow_mut().backward = Some(|value: &TensorData| {
+        //     let base = value.prev[0].borrow().data.clone();
+        //     let p = value.prev[1].borrow().data.clone();
+        //     let base_vec = base.mapv(|val| val.powf(p.first().unwrap() - 1.0));
+        //     value.prev[0].borrow_mut().grad += p * base_vec * value.grad.clone();
+        // });
+        // out
     }
     
     pub fn sigmoid(&self) -> Tensor {
@@ -350,7 +351,18 @@ impl Div<&Tensor> for &Tensor {
     type Output = Tensor;
     
     fn div(self, rhs: &Tensor) -> Self::Output {
-        self * &rhs.pow(-1.0)
+        let out = Tensor::new(self.borrow().data.clone() / rhs.borrow().data.clone());
+        out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
+        out.borrow_mut().op = Some(String::from("/"));
+        out.borrow_mut().backward = Some(|value: &TensorData| {
+            let a_data = value.prev[0].borrow().data.clone();
+            let b_data = value.prev[1].borrow().data.clone();
+            let a2_data = a_data.clone();
+            let b2_data = b_data.clone();
+            value.prev[0].borrow_mut().grad += -value.grad.clone() / (a_data * a2_data);
+            value.prev[1].borrow_mut().grad += -value.grad.clone() / (b_data * b2_data);
+        });
+        out
     }
 }
 

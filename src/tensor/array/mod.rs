@@ -513,6 +513,25 @@ impl<T: Clone + Div<Output = T>, const N: usize> Div<T> for &NdArray<T, N> {
     }
 }
 
+// Elementwise division
+impl<T: Clone + Div<Output = T>, const N: usize> Div<&NdArray<T, N>> for &NdArray<T, N> {
+    type Output = NdArray<T, N>;
+    
+    fn div(self, rhs: &NdArray<T, N>) -> Self::Output {
+        assert_eq!(self.shape, rhs.shape);
+        let div_vec = self.data.iter().zip(&rhs.data).map(|(a, b)| a.clone() / b.clone()).collect();
+        NdArray::from(div_vec, self.shape)
+    }
+}
+
+impl<T: Clone + Div<Output = T>, const N: usize> Div<NdArray<T, N>> for NdArray<T, N> {
+    type Output = NdArray<T, N>;
+    
+    fn div(self, rhs: NdArray<T, N>) -> Self::Output {
+        &self / &rhs
+    }
+}
+
 // Negation
 impl<T: Clone + Neg<Output = T>, const N: usize> Neg for NdArray<T, N> {
     type Output = NdArray<T, N>;
