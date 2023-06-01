@@ -137,7 +137,8 @@ impl Tensor {
     
     pub fn mean(&self) -> Tensor {
         let len = Tensor::from_f64(self.len() as f64);
-        self.sum() / len
+        let one = Tensor::from_f64(1.0);
+        (one / len) * self.sum() 
     }
     
     pub fn exp(&self) -> Tensor {
