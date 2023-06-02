@@ -1,3 +1,4 @@
+use elara_log::prelude::*;
 mod array;
 pub use array::{NdArray, utils::*};
 
@@ -169,22 +170,23 @@ impl Tensor {
     // WARNING: power function breaks easily and is hacked together with bits
     // and pieces from a soul that is haunted with weeks of midnight code
     // NEEDS TO BE REWRITTEN!!!
-    pub fn pow(&self, power: f64) {
-        unimplemented!("pow() is not yet workable at the moment");
-        // let pow_array = self.borrow().data.mapv(|val| val.powf(power));
-        // let out = Tensor::new(pow_array);
-        // out.borrow_mut().prev = vec![self.clone(), Tensor::from_f64(power)];
-        // out.borrow_mut().op = Some(String::from("^"));
-        // out.borrow_mut().backward = Some(|value: &TensorData| {
-        //     let base = value.prev[0].borrow().data.clone();
-        //     let p = value.prev[1].borrow().data.clone();
-        //     let base_vec = base.mapv(|val| val.powf(p.first().unwrap() - 1.0));
-        //     value.prev[0].borrow_mut().grad += p * base_vec * value.grad.clone();
-        // });
-        // out
+    pub fn pow(&self, power: f64) -> Tensor {
+        warn!("pow() is not yet workable at the moment");
+        let pow_array = self.borrow().data.mapv(|val| val.powf(power));
+        let out = Tensor::new(pow_array);
+        out.borrow_mut().prev = vec![self.clone(), Tensor::from_f64(power)];
+        out.borrow_mut().op = Some(String::from("^"));
+        out.borrow_mut().backward = Some(|value: &TensorData| {
+            let base = value.prev[0].borrow().data.clone();
+            let p = value.prev[1].borrow().data.clone();
+            let base_vec = base.mapv(|val| val.powf(p.first().unwrap() - 1.0));
+            value.prev[0].borrow_mut().grad += p * base_vec * value.grad.clone();
+        });
+        out
     }
     
     pub fn sigmoid(&self) -> Tensor {
+        warn!("sigmoid() is not recommended to be used, use relu() instead");
         let sigmoid_array = self.borrow().data.mapv(|val| 1.0 / (1.0 + (-val).exp()));
         let out = Tensor::new(sigmoid_array);
         out.borrow_mut().prev = vec![self.clone()];
