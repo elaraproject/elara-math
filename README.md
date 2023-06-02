@@ -15,7 +15,7 @@ As an example, here is a working tiny neural network using `elara-math`.
 use elara_math::prelude::*;
 
 const EPOCHS: usize = 10000;
-const LR: f64 = 0.01;
+const LR: f64 = 1e-5;
 
 fn main() {
     let train_data = tensor![
@@ -31,7 +31,7 @@ fn main() {
     ].reshape([4, 1]);
     let mut weights = Tensor::rand([3, 1]);
     for epoch in 0..EPOCHS {
-        let output = train_data.matmul(&weights).sigmoid();
+        let output = train_data.matmul(&weights).relu();
         let loss = elara_math::mse(&output, &train_labels);
         println!("Epoch {}, loss: {:?}", epoch, loss);
         loss.backward();
@@ -40,7 +40,8 @@ fn main() {
         weights.zero_grad();
     }
     let pred_data = tensor![[1.0, 0.0, 0.0]];
-    let pred = &pred_data.matmul(&weights).sigmoid();
+    let pred = &pred_data.matmul(&weights).relu();
+    println!("Weights after training: {:?}", weights);
     println!("Prediction [1, 0, 0] -> {:?}", pred.borrow().data);
 }
 ```
