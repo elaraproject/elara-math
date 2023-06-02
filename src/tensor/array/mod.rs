@@ -261,7 +261,7 @@ impl NdArray<f64, 2> {
     }
     
     pub fn transpose(&self) -> NdArray<f64, 2> {
-        let mut shape = self.shape.clone();
+        let mut shape = self.shape;
         shape.reverse();
         let mut result = NdArray::zeros(shape);
         for i in 0..shape[0] {

@@ -10,7 +10,6 @@ use std::{
     hash::{Hash, Hasher},
     fmt::Debug,
     ops::{Add, Mul, Div, Sub, Deref, DerefMut}, rc::Rc,
-    iter::Sum
 };
 
 use uuid::Uuid;
@@ -75,7 +74,7 @@ impl TensorData {
     fn new(data: NdArray<f64, 2>) -> TensorData {
         let shape = data.shape;
         TensorData {
-            data, 
+            data,
             grad: NdArray::zeros(shape),
             uuid: Uuid::new_v4(),
             backward: None,
@@ -102,7 +101,7 @@ impl Tensor {
     pub fn from_f64(val: f64) -> Tensor {
         Tensor::new(array![[val]])
     }
-    
+
     pub fn arange<I: Iterator<Item = i32>>(range: I) -> Tensor {
         Tensor::new(NdArray::arange(range).mapv(|el| el as f64))
     }
@@ -114,15 +113,15 @@ impl Tensor {
     pub fn reshape(&mut self, shape: [usize; 2]) -> Tensor {
         Tensor::new(self.borrow().data.clone().reshape(shape))
     }
-    
+
     pub fn index(&self, idx: &[usize; 2]) -> f64 {
         self.borrow().data[idx]
     }
-    
+
     pub fn len(&self) -> usize {
         self.borrow().data.len()
     }
-    
+
     pub fn sum(&self) -> Tensor {
         let sum = self.borrow().data.sum();
         let out = Tensor::from_f64(sum);
@@ -135,13 +134,13 @@ impl Tensor {
         });
         out
     }
-    
+
     pub fn mean(&self) -> Tensor {
         let len = Tensor::from_f64(self.len() as f64);
         let one = Tensor::from_f64(1.0);
-        (one / len) * self.sum() 
+        (one / len) * self.sum()
     }
-    
+
     pub fn exp(&self) -> Tensor {
         let exp_array = self.borrow().data.mapv(|val| val.exp());
         let out = Tensor::new(exp_array);
@@ -153,7 +152,7 @@ impl Tensor {
         });
         out
     }
-    
+
     pub fn relu(&self) -> Tensor {
         let relu_array = self.borrow().data.mapv(|val| val.max(0.0));
         let out = Tensor::new(relu_array);
@@ -184,7 +183,7 @@ impl Tensor {
         });
         out
     }
-    
+
     pub fn sigmoid(&self) -> Tensor {
         warn!("sigmoid() is not recommended to be used, use relu() instead");
         let sigmoid_array = self.borrow().data.mapv(|val| 1.0 / (1.0 + (-val).exp()));
@@ -217,7 +216,7 @@ impl Tensor {
         });
         out
     }
-    
+
     pub fn index_mut(&mut self, idx: &[usize; 2]) -> f64 {
         self.borrow_mut().data[idx]
     }
@@ -225,7 +224,7 @@ impl Tensor {
     // pub fn data(&self) -> impl Deref<Target = NdArray<f64, N>> + '_ {
     //     Ref::map((*self.0).borrow(), |mi| &mi.data)
     // }
-    
+
     // pub fn data_mut(&self) -> impl Deref<Target = NdArray<f64, N>> + '_ {
     //     RefMut::map((*self.0).borrow_mut(), |mi| &mut mi.data)
     // }
@@ -278,7 +277,7 @@ impl Debug for Tensor {
 impl Add<&Tensor> for &Tensor {
     type Output = Tensor;
     fn add(self, rhs: &Tensor) -> Self::Output {
-        
+
         let out = Tensor::new(self.borrow().data.clone() + rhs.borrow().data.clone());
         out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
         out.borrow_mut().op = Some(String::from("+"));
@@ -352,7 +351,7 @@ impl Mul<Tensor> for Tensor {
 // Elementwise division without reference
 impl Div<&Tensor> for &Tensor {
     type Output = Tensor;
-    
+
     fn div(self, rhs: &Tensor) -> Self::Output {
         let out = Tensor::new(self.borrow().data.clone() / rhs.borrow().data.clone());
         out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
@@ -371,7 +370,7 @@ impl Div<&Tensor> for &Tensor {
 
 impl Div<Tensor> for Tensor {
     type Output = Tensor;
-    
+
     fn div(self, rhs: Tensor) -> Self::Output {
         &self / &rhs
     }
