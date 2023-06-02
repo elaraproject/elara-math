@@ -1,15 +1,16 @@
 use elara_log::prelude::*;
 mod array;
-pub use array::{NdArray, utils::*};
+pub use array::{utils::*, NdArray};
 
 use crate::array;
 
 use std::{
     cell::{RefCell, RefMut},
     collections::HashSet,
-    hash::{Hash, Hasher},
     fmt::Debug,
-    ops::{Add, Mul, Div, Sub, Deref, DerefMut}, rc::Rc,
+    hash::{Hash, Hasher},
+    ops::{Add, Deref, DerefMut, Div, Mul, Sub},
+    rc::Rc,
 };
 
 use uuid::Uuid;
@@ -30,7 +31,7 @@ macro_rules! tensor {
 macro_rules! scalar {
     ($x:expr) => {
         Tensor::from_f64($crate::array!($x))
-    }
+    };
 }
 
 /// Backing data for `Tensor`
@@ -40,7 +41,7 @@ pub struct TensorData {
     pub uuid: Uuid,
     backward: Option<fn(&TensorData)>,
     prev: Vec<Tensor>,
-    op: Option<String>
+    op: Option<String>,
 }
 
 /// A PyTorch-like differentiable tensor type
@@ -83,7 +84,7 @@ impl TensorData {
             uuid: Uuid::new_v4(),
             backward: None,
             prev: Vec::new(),
-            op: None
+            op: None,
         }
     }
 }
@@ -179,7 +180,11 @@ impl Tensor {
         out.borrow_mut().backward = Some(|value: &TensorData| {
             let shape = value.prev[0].borrow().data.shape;
             let zero_array = NdArray::zeros(shape);
-            value.prev[0].borrow_mut().grad += if value.data > zero_array { value.grad.clone() } else { zero_array };
+            value.prev[0].borrow_mut().grad += if value.data > zero_array {
+                value.grad.clone()
+            } else {
+                zero_array
+            };
         });
         out
     }
@@ -187,7 +192,7 @@ impl Tensor {
     // WARNING: power function breaks easily and is hacked together with bits
     // and pieces from a soul that is haunted with weeks of midnight code
     // NEEDS TO BE REWRITTEN!!!
-    
+
     /// Power function for tensors (not recommended as it breaks easily)
     pub fn pow(&self, power: f64) -> Tensor {
         warn!("pow() is not yet workable at the moment");
@@ -213,7 +218,8 @@ impl Tensor {
         out.borrow_mut().op = Some(String::from("exp"));
         out.borrow_mut().backward = Some(|value: &TensorData| {
             let prev = value.prev[0].borrow().data.clone();
-            value.prev[0].borrow_mut().grad += prev.mapv(|val| val.exp() / (1.0 + val.exp()).powf(2.0));
+            value.prev[0].borrow_mut().grad +=
+                prev.mapv(|val| val.exp() / (1.0 + val.exp()).powf(2.0));
         });
         out
     }
@@ -223,7 +229,7 @@ impl Tensor {
         let a_shape = self.shape();
         let b_shape = rhs.shape();
         assert_eq!(a_shape[1], b_shape[0]);
-    	let res: NdArray<f64, 2> = self.borrow().data.matmul(&rhs.borrow().data);
+        let res: NdArray<f64, 2> = self.borrow().data.matmul(&rhs.borrow().data);
         let out = Tensor::new(res);
         out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
         out.borrow_mut().op = Some(String::from("matmul"));
@@ -237,7 +243,7 @@ impl Tensor {
         });
         out
     }
-    
+
     /// Get an element of a tensor as mutable
     pub fn index_mut(&mut self, idx: &[usize; 2]) -> f64 {
         self.borrow_mut().data[idx]
@@ -293,16 +299,19 @@ impl Tensor {
 // TODO: better printing of tensors
 impl Debug for Tensor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Tensor({:?}, shape={:?})", self.borrow().data.data.clone(), self.shape())
+        write!(
+            f,
+            "Tensor({:?}, shape={:?})",
+            self.borrow().data.data.clone(),
+            self.shape()
+        )
     }
 }
-
 
 // Elementwise addition by reference
 impl Add<&Tensor> for &Tensor {
     type Output = Tensor;
     fn add(self, rhs: &Tensor) -> Self::Output {
-
         let out = Tensor::new(self.borrow().data.clone() + rhs.borrow().data.clone());
         out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
         out.borrow_mut().op = Some(String::from("+"));
@@ -344,7 +353,6 @@ impl Sub<Tensor> for Tensor {
         &self - &rhs
     }
 }
-
 
 // Elementwise multiplication without reference
 impl Mul<&Tensor> for &Tensor {

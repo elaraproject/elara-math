@@ -1,5 +1,5 @@
 use elara_log::prelude::*;
-use elara_math::{NdArray, array};
+use elara_math::{array, NdArray};
 
 fn main() {
     // Initialize logging library

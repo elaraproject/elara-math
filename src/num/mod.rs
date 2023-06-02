@@ -23,12 +23,13 @@ pub fn randint(a: i32, b: i32) -> i32 {
 }
 
 /// Finds the maximum of 2 values
-pub fn max<T>(a: T, b: T) -> T 
-where T: PartialOrd
+pub fn max<T>(a: T, b: T) -> T
+where
+    T: PartialOrd,
 {
-	if a >= b {
-		a
-	} else {
-		b
-	}
+    if a >= b {
+        a
+    } else {
+        b
+    }
 }

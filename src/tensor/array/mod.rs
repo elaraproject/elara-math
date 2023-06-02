@@ -1,3 +1,4 @@
+use crate::num::randf;
 use elara_log::prelude::*;
 use std::iter::{Product, Sum};
 use std::ops::{AddAssign, SubAssign};
@@ -5,7 +6,6 @@ use std::{
     fmt::Debug,
     ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub},
 };
-use crate::num::randf;
 
 pub mod utils;
 use utils::{One, Zero};
@@ -108,20 +108,21 @@ impl<T: Clone, const N: usize> NdArray<T, N> {
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.data.iter()
     }
-    
+
     pub fn first(&self) -> Option<&T> {
         self.data.first()
     }
-    
+
     pub fn mapv<B, F>(&self, f: F) -> NdArray<B, N>
-    where T: Clone,
-          F: FnMut(T) -> B,
-          B: Clone
+    where
+        T: Clone,
+        F: FnMut(T) -> B,
+        B: Clone,
     {
         let data = self.data.clone();
         NdArray {
             data: data.into_iter().map(f).collect(),
-            shape: self.shape
+            shape: self.shape,
         }
     }
 
@@ -134,7 +135,10 @@ impl<T: Clone, const N: usize> NdArray<T, N> {
         let mut i = 0;
         for j in 0..self.shape.len() {
             if idx[j] >= self.shape[j] {
-                error!("[elara-math] Index {} is out of bounds for dimension {} with size {}", idx[j], j, self.shape[j])
+                error!(
+                    "[elara-math] Index {} is out of bounds for dimension {} with size {}",
+                    idx[j], j, self.shape[j]
+                )
             }
             i = i * self.shape[j] + idx[j];
         }
@@ -144,7 +148,10 @@ impl<T: Clone, const N: usize> NdArray<T, N> {
     /// Change the shape of a NdArray
     pub fn reshape(self, shape: [usize; N]) -> NdArray<T, N> {
         if self.len() != shape.iter().product() {
-            error!("[elara-math] Cannot reshape into provided shape {:?}", shape);
+            error!(
+                "[elara-math] Cannot reshape into provided shape {:?}",
+                shape
+            );
         }
         NdArray::from(self.data, shape)
     }
@@ -157,13 +164,12 @@ impl<T: Clone, const N: usize> NdArray<T, N> {
             shape: [self.shape.iter().product(); 1],
         }
     }
-    
 
     /// Find the dot product of a NdArray with
     /// another NdArray
     pub fn dot(&self, other: &NdArray<T, N>) -> T
     where
-        T: Clone + Zero + Mul<Output = T>
+        T: Clone + Zero + Mul<Output = T>,
     {
         if self.len() != other.len() {
             error!("[elara-math] Dot product cannot be found between NdArrays of shape {} and {}, consider using matmul()",
@@ -188,11 +194,8 @@ impl<T: Clone, const N: usize> NdArray<T, N> {
         let mut shape = self.shape;
         shape.reverse();
         let data = self.data.clone();
-        
-        NdArray {
-            shape,
-            data
-        }
+
+        NdArray { shape, data }
     }
 
     pub fn max(&self) -> T
@@ -238,28 +241,25 @@ impl<const N: usize> NdArray<f64, N> {
         // There's GOT to be a more efficient way to do this
         let empty_vec = vec![0.0; shape.iter().product()];
         let data = empty_vec.iter().map(|_| randf()).collect();
-        NdArray {
-            shape,
-            data
-        }
+        NdArray { shape, data }
     }
 }
 
 impl NdArray<f64, 2> {
     /// Finds the matrix product of 2 matrices
     pub fn matmul(&self, b: &NdArray<f64, 2>) -> NdArray<f64, 2> {
-    	assert_eq!(self.shape[1], b.shape[0]);
-    	let mut res: NdArray<f64, 2> = NdArray::zeros([self.shape[0], b.shape[1]]);
-    	for row in 0..self.shape[0] {
-    		for col in 0..b.shape[1] {
-    			for el in 0..b.shape[0] {
-    				res[&[row, col]] += self[&[row, el]] * b[&[el, col]]
-    			}
-    		}
-    	}
+        assert_eq!(self.shape[1], b.shape[0]);
+        let mut res: NdArray<f64, 2> = NdArray::zeros([self.shape[0], b.shape[1]]);
+        for row in 0..self.shape[0] {
+            for col in 0..b.shape[1] {
+                for el in 0..b.shape[0] {
+                    res[&[row, col]] += self[&[row, el]] * b[&[el, col]]
+                }
+            }
+        }
         res
     }
-    
+
     pub fn transpose(&self) -> NdArray<f64, 2> {
         let mut shape = self.shape;
         shape.reverse();
@@ -313,10 +313,9 @@ impl<T: Clone + Add<Output = T>, const N: usize> Add<&NdArray<T, N>> for &NdArra
     }
 }
 
-impl<T: Clone + Add<Output = T>, const N: usize> Add<NdArray<T, N>> for NdArray<T, N>
-{
+impl<T: Clone + Add<Output = T>, const N: usize> Add<NdArray<T, N>> for NdArray<T, N> {
     type Output = NdArray<T, N>;
-    
+
     fn add(self, rhs: NdArray<T, N>) -> Self::Output {
         &self + &rhs
     }
@@ -325,13 +324,9 @@ impl<T: Clone + Add<Output = T>, const N: usize> Add<NdArray<T, N>> for NdArray<
 // Scalar addition
 impl<T: Clone + Add<Output = T>, const N: usize> Add<T> for &NdArray<T, N> {
     type Output = NdArray<T, N>;
-    
+
     fn add(self, val: T) -> Self::Output {
-        let sum_vec = self
-            .data
-            .iter()
-            .map(|a| a.clone() + val.clone())
-            .collect();
+        let sum_vec = self.data.iter().map(|a| a.clone() + val.clone()).collect();
 
         NdArray::from(sum_vec, self.shape)
     }
@@ -339,7 +334,7 @@ impl<T: Clone + Add<Output = T>, const N: usize> Add<T> for &NdArray<T, N> {
 
 impl<T: Clone + Add<Output = T>, const N: usize> Add<T> for NdArray<T, N> {
     type Output = NdArray<T, N>;
-    
+
     fn add(self, val: T) -> Self::Output {
         &self + val
     }
@@ -348,13 +343,8 @@ impl<T: Clone + Add<Output = T>, const N: usize> Add<T> for NdArray<T, N> {
 // Scalar addassign
 
 impl<T: Clone + Add<Output = T>, const N: usize> AddAssign<T> for NdArray<T, N> {
-
     fn add_assign(&mut self, rhs: T) {
-        let sum_vec = self
-            .data
-            .iter()
-            .map(|a| a.clone() + rhs.clone())
-            .collect();
+        let sum_vec = self.data.iter().map(|a| a.clone() + rhs.clone()).collect();
         self.data = sum_vec;
     }
 }
@@ -432,10 +422,9 @@ impl<T: Clone + Sub<Output = T>, const N: usize> SubAssign<NdArray<T, N>> for Nd
     }
 }
 
-impl<T: Clone + Sub<Output = T>, const N: usize> Sub<NdArray<T, N>> for NdArray<T, N>
-{
+impl<T: Clone + Sub<Output = T>, const N: usize> Sub<NdArray<T, N>> for NdArray<T, N> {
     type Output = NdArray<T, N>;
-    
+
     fn sub(self, rhs: NdArray<T, N>) -> Self::Output {
         &self - &rhs
     }
@@ -444,13 +433,9 @@ impl<T: Clone + Sub<Output = T>, const N: usize> Sub<NdArray<T, N>> for NdArray<
 // Scalar subtraction
 impl<T: Clone + Sub<Output = T>, const N: usize> Sub<T> for &NdArray<T, N> {
     type Output = NdArray<T, N>;
-    
+
     fn sub(self, val: T) -> Self::Output {
-        let sub_vec = self
-            .data
-            .iter()
-            .map(|a| a.clone() - val.clone())
-            .collect();
+        let sub_vec = self.data.iter().map(|a| a.clone() - val.clone()).collect();
 
         NdArray::from(sub_vec, self.shape)
     }
@@ -458,7 +443,7 @@ impl<T: Clone + Sub<Output = T>, const N: usize> Sub<T> for &NdArray<T, N> {
 
 impl<T: Clone + Sub<Output = T>, const N: usize> Sub<T> for NdArray<T, N> {
     type Output = NdArray<T, N>;
-    
+
     fn sub(self, val: T) -> Self::Output {
         &self - val
     }
@@ -489,7 +474,12 @@ impl<T: Clone + Mul<Output = T>, const N: usize> Mul<&NdArray<T, N>> for &NdArra
 
     fn mul(self, rhs: &NdArray<T, N>) -> Self::Output {
         assert_eq!(self.shape, rhs.shape);
-        let mul_vec = self.data.iter().zip(&rhs.data).map(|(a, b)| a.clone() * b.clone()).collect();
+        let mul_vec = self
+            .data
+            .iter()
+            .zip(&rhs.data)
+            .map(|(a, b)| a.clone() * b.clone())
+            .collect();
         NdArray::from(mul_vec, self.shape)
     }
 }
@@ -516,17 +506,22 @@ impl<T: Clone + Div<Output = T>, const N: usize> Div<T> for &NdArray<T, N> {
 // Elementwise division
 impl<T: Clone + Div<Output = T>, const N: usize> Div<&NdArray<T, N>> for &NdArray<T, N> {
     type Output = NdArray<T, N>;
-    
+
     fn div(self, rhs: &NdArray<T, N>) -> Self::Output {
         assert_eq!(self.shape, rhs.shape);
-        let div_vec = self.data.iter().zip(&rhs.data).map(|(a, b)| a.clone() / b.clone()).collect();
+        let div_vec = self
+            .data
+            .iter()
+            .zip(&rhs.data)
+            .map(|(a, b)| a.clone() / b.clone())
+            .collect();
         NdArray::from(div_vec, self.shape)
     }
 }
 
 impl<T: Clone + Div<Output = T>, const N: usize> Div<NdArray<T, N>> for NdArray<T, N> {
     type Output = NdArray<T, N>;
-    
+
     fn div(self, rhs: NdArray<T, N>) -> Self::Output {
         &self / &rhs
     }

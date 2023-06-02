@@ -19,8 +19,7 @@ pub use tensor::*;
 pub mod prelude;
 
 /// Mean squared error function
-pub fn mse(predicted: &Tensor, target: &Tensor) -> Tensor
-{
+pub fn mse(predicted: &Tensor, target: &Tensor) -> Tensor {
     let out = target - predicted;
     (&out * &out).mean()
 }
