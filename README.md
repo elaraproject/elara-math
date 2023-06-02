@@ -11,7 +11,7 @@ Elara Math is a Rust-native math library, with (current or planned support for):
 
 As an example, here is a working tiny neural network using `elara-math`.
 
-```rs
+```rust
 use elara_math::prelude::*;
 
 const EPOCHS: usize = 10000;
