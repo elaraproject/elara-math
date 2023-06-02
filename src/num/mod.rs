@@ -3,7 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub use std::f64::consts::*;
 
 /// Pseudorandom generator based on
-/// https://users.rust-lang.org/t/random-number-without-using-the-external-crate/17260/11
+/// <https://users.rust-lang.org/t/random-number-without-using-the-external-crate/17260/11>
 pub fn rand() -> u32 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -22,6 +22,7 @@ pub fn randint(a: i32, b: i32) -> i32 {
     a + (rand() % m) as i32
 }
 
+/// Finds the maximum of 2 values
 pub fn max<T>(a: T, b: T) -> T 
 where T: PartialOrd
 {

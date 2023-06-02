@@ -21,7 +21,7 @@ macro_rules! array {
     }};
 }
 
-/// A general NdArray (multi-dimensional differentiable
+/// A general NdArray (multi-dimensional
 /// array type)
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
 pub struct NdArray<T: Clone, const N: usize> {

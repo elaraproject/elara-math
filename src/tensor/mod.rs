@@ -14,6 +14,7 @@ use std::{
 
 use uuid::Uuid;
 
+/// Macro for quickly creating tensors
 #[macro_export]
 macro_rules! tensor {
     [$([$($x:expr),* $(,)*]),+ $(,)*] => {
@@ -24,6 +25,7 @@ macro_rules! tensor {
     };
 }
 
+/// Macro for quickly creating scalar tensors
 #[macro_export]
 macro_rules! scalar {
     ($x:expr) => {
@@ -31,6 +33,7 @@ macro_rules! scalar {
     }
 }
 
+/// Backing data for `Tensor`
 pub struct TensorData {
     pub data: NdArray<f64, 2>,
     pub grad: NdArray<f64, 2>,
@@ -40,6 +43,7 @@ pub struct TensorData {
     op: Option<String>
 }
 
+/// A PyTorch-like differentiable tensor type
 #[derive(Clone)]
 pub struct Tensor(Rc<RefCell<TensorData>>);
 
@@ -85,43 +89,54 @@ impl TensorData {
 }
 
 impl Tensor {
+    /// Create a new tensor from an `NdArray`
     pub fn new(array: NdArray<f64, 2>) -> Tensor {
         Tensor(Rc::new(RefCell::new(TensorData::new(array))))
     }
 
+    /// Find the shape of a tensor
     pub fn shape(&self) -> [usize; 2] {
         self.borrow().data.shape
     }
 
+    /// Create a tensor filled with random values
     pub fn rand(shape: [usize; 2]) -> Tensor {
         let arr = NdArray::random(shape);
         Tensor::new(arr)
     }
 
+    /// Create a tensor from a `f64`
     pub fn from_f64(val: f64) -> Tensor {
         Tensor::new(array![[val]])
     }
 
+    /// Create a tensor from a range
     pub fn arange<I: Iterator<Item = i32>>(range: I) -> Tensor {
         Tensor::new(NdArray::arange(range).mapv(|el| el as f64))
     }
 
+    /// Find the gradient of a tensor
+    /// Remember to call `backward()` first!
     pub fn grad(&self) -> NdArray<f64, 2> {
         self.borrow().grad.clone()
     }
 
+    /// Change the shape of a tensor
     pub fn reshape(&mut self, shape: [usize; 2]) -> Tensor {
         Tensor::new(self.borrow().data.clone().reshape(shape))
     }
 
+    /// Get a value from a tensor by index
     pub fn index(&self, idx: &[usize; 2]) -> f64 {
         self.borrow().data[idx]
     }
 
+    /// Get the number of elements in a tensor
     pub fn len(&self) -> usize {
         self.borrow().data.len()
     }
 
+    /// Find the sum of a tensor
     pub fn sum(&self) -> Tensor {
         let sum = self.borrow().data.sum();
         let out = Tensor::from_f64(sum);
@@ -135,12 +150,14 @@ impl Tensor {
         out
     }
 
+    /// Find the mean of a tensor
     pub fn mean(&self) -> Tensor {
         let len = Tensor::from_f64(self.len() as f64);
         let one = Tensor::from_f64(1.0);
         (one / len) * self.sum()
     }
 
+    /// Exponential function for tensors
     pub fn exp(&self) -> Tensor {
         let exp_array = self.borrow().data.mapv(|val| val.exp());
         let out = Tensor::new(exp_array);
@@ -153,6 +170,7 @@ impl Tensor {
         out
     }
 
+    /// ReLU function for tensors
     pub fn relu(&self) -> Tensor {
         let relu_array = self.borrow().data.mapv(|val| val.max(0.0));
         let out = Tensor::new(relu_array);
@@ -169,6 +187,8 @@ impl Tensor {
     // WARNING: power function breaks easily and is hacked together with bits
     // and pieces from a soul that is haunted with weeks of midnight code
     // NEEDS TO BE REWRITTEN!!!
+    
+    /// Power function for tensors (not recommended as it breaks easily)
     pub fn pow(&self, power: f64) -> Tensor {
         warn!("pow() is not yet workable at the moment");
         let pow_array = self.borrow().data.mapv(|val| val.powf(power));
@@ -184,6 +204,7 @@ impl Tensor {
         out
     }
 
+    /// Sigmoid function for tensors (not recommended as well)
     pub fn sigmoid(&self) -> Tensor {
         warn!("sigmoid() is not recommended to be used, use relu() instead");
         let sigmoid_array = self.borrow().data.mapv(|val| 1.0 / (1.0 + (-val).exp()));
@@ -197,7 +218,7 @@ impl Tensor {
         out
     }
 
-
+    /// Tensor matrix multiplication
     pub fn matmul(&self, rhs: &Tensor) -> Tensor {
         let a_shape = self.shape();
         let b_shape = rhs.shape();
@@ -216,7 +237,8 @@ impl Tensor {
         });
         out
     }
-
+    
+    /// Get an element of a tensor as mutable
     pub fn index_mut(&mut self, idx: &[usize; 2]) -> f64 {
         self.borrow_mut().data[idx]
     }
@@ -233,14 +255,17 @@ impl Tensor {
     //     Ref::map((*self.0).borrow(), |mi| &mi.grad)
     // }
 
+    /// Get the gradient of a tensor as mutable
     pub fn grad_mut(&self) -> impl DerefMut<Target = NdArray<f64, 2>> + '_ {
         RefMut::map((*self.0).borrow_mut(), |mi| &mut mi.grad)
     }
 
+    /// Zero the gradient of a tensor
     pub fn zero_grad(&self) {
         self.grad_mut().fill(0.0);
     }
 
+    /// Perform backpropagation on a tensor
     pub fn backward(&self) {
         let mut topo: Vec<Tensor> = vec![];
         let mut visited: HashSet<Tensor> = HashSet::new();
