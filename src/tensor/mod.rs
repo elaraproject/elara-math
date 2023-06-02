@@ -1,3 +1,4 @@
+use elara_log::prelude::*;
 mod array;
 pub use array::{NdArray, utils::*};
 
@@ -137,7 +138,8 @@ impl Tensor {
     
     pub fn mean(&self) -> Tensor {
         let len = Tensor::from_f64(self.len() as f64);
-        self.sum() / len
+        let one = Tensor::from_f64(1.0);
+        (one / len) * self.sum() 
     }
     
     pub fn exp(&self) -> Tensor {
@@ -169,6 +171,7 @@ impl Tensor {
     // and pieces from a soul that is haunted with weeks of midnight code
     // NEEDS TO BE REWRITTEN!!!
     pub fn pow(&self, power: f64) -> Tensor {
+        warn!("pow() is not yet workable at the moment");
         let pow_array = self.borrow().data.mapv(|val| val.powf(power));
         let out = Tensor::new(pow_array);
         out.borrow_mut().prev = vec![self.clone(), Tensor::from_f64(power)];
@@ -183,6 +186,7 @@ impl Tensor {
     }
     
     pub fn sigmoid(&self) -> Tensor {
+        warn!("sigmoid() is not recommended to be used, use relu() instead");
         let sigmoid_array = self.borrow().data.mapv(|val| 1.0 / (1.0 + (-val).exp()));
         let out = Tensor::new(sigmoid_array);
         out.borrow_mut().prev = vec![self.clone()];
@@ -350,7 +354,18 @@ impl Div<&Tensor> for &Tensor {
     type Output = Tensor;
     
     fn div(self, rhs: &Tensor) -> Self::Output {
-        self * &rhs.pow(-1.0)
+        let out = Tensor::new(self.borrow().data.clone() / rhs.borrow().data.clone());
+        out.borrow_mut().prev = vec![self.clone(), rhs.clone()];
+        out.borrow_mut().op = Some(String::from("/"));
+        out.borrow_mut().backward = Some(|value: &TensorData| {
+            let a_data = value.prev[0].borrow().data.clone();
+            let b_data = value.prev[1].borrow().data.clone();
+            let a2_data = a_data.clone();
+            let b2_data = b_data.clone();
+            value.prev[0].borrow_mut().grad += -value.grad.clone() / (a_data * a2_data);
+            value.prev[1].borrow_mut().grad += -value.grad.clone() / (b_data * b2_data);
+        });
+        out
     }
 }
 

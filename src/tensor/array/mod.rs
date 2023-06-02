@@ -183,12 +183,6 @@ impl<T: Clone, const N: usize> NdArray<T, N> {
         NdArray::from(vec, [len; N])
     }
 
-    /// Transposes a NdArray in-place
-    pub fn transpose(mut self) -> NdArray<T, N> {
-        self.shape.reverse();
-        self
-    }
-
     /// Transposes a NdArray and returns a new NdArray
     pub fn t(&self) -> NdArray<T, N> {
         let mut shape = self.shape;
@@ -264,6 +258,18 @@ impl NdArray<f64, 2> {
     		}
     	}
         res
+    }
+    
+    pub fn transpose(&self) -> NdArray<f64, 2> {
+        let mut shape = self.shape.clone();
+        shape.reverse();
+        let mut result = NdArray::zeros(shape);
+        for i in 0..shape[0] {
+            for j in 0..shape[1] {
+                result[&[i, j]] = self[&[j, i]];
+            }
+        }
+        result
     }
 }
 
@@ -504,6 +510,25 @@ impl<T: Clone + Div<Output = T>, const N: usize> Div<T> for &NdArray<T, N> {
         let quotient_vec = self.data.iter().map(|a| val.clone() / a.clone()).collect();
 
         NdArray::from(quotient_vec, self.shape)
+    }
+}
+
+// Elementwise division
+impl<T: Clone + Div<Output = T>, const N: usize> Div<&NdArray<T, N>> for &NdArray<T, N> {
+    type Output = NdArray<T, N>;
+    
+    fn div(self, rhs: &NdArray<T, N>) -> Self::Output {
+        assert_eq!(self.shape, rhs.shape);
+        let div_vec = self.data.iter().zip(&rhs.data).map(|(a, b)| a.clone() / b.clone()).collect();
+        NdArray::from(div_vec, self.shape)
+    }
+}
+
+impl<T: Clone + Div<Output = T>, const N: usize> Div<NdArray<T, N>> for NdArray<T, N> {
+    type Output = NdArray<T, N>;
+    
+    fn div(self, rhs: NdArray<T, N>) -> Self::Output {
+        &self / &rhs
     }
 }
 
