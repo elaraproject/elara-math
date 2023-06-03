@@ -245,6 +245,16 @@ impl<const N: usize> NdArray<f64, N> {
     }
 }
 
+impl NdArray<f64, 1> {
+    /// Creates a equally linearly-spaced vector
+    pub fn linspace(x_start: f64, x_end: f64, n_samples: i32) -> NdArray<f64, 1> {
+        let dx = (x_end - x_start) / ((n_samples - 1) as f64);
+        let vec: Vec<f64> = (0..n_samples).map(|i| x_start + (i as f64) * dx).collect();
+        let len = vec.len();
+        NdArray::from(vec, [len])
+    }
+}
+
 impl NdArray<f64, 2> {
     /// Finds the matrix product of 2 matrices
     pub fn matmul(&self, b: &NdArray<f64, 2>) -> NdArray<f64, 2> {
