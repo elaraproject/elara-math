@@ -10,6 +10,8 @@ use std::{
 pub mod utils;
 use utils::{One, Zero};
 
+pub mod blas;
+
 /// Macro for quickly creating 1D or 2D arrays
 #[macro_export]
 macro_rules! array {
@@ -259,27 +261,16 @@ impl NdArray<f64, 2> {
     /// Finds the matrix product of 2 matrices
     pub fn matmul(&self, b: &NdArray<f64, 2>) -> NdArray<f64, 2> {
         assert_eq!(self.shape[1], b.shape[0]);
-        let mut res: NdArray<f64, 2> = NdArray::zeros([self.shape[0], b.shape[1]]);
-        for row in 0..self.shape[0] {
-            for col in 0..b.shape[1] {
-                for el in 0..b.shape[0] {
-                    res[&[row, col]] += self[&[row, el]] * b[&[el, col]]
-                }
-            }
-        }
-        res
+        let matmul_vec = blas::dgemm(self.shape[0], self.shape[1], b.shape[1], &self.data, &b.data);
+        let shape = [self.shape[0], b.shape[1]];
+        NdArray::from(matmul_vec, shape)
     }
 
     pub fn transpose(&self) -> NdArray<f64, 2> {
+        let transpose_vec = blas::transpose(&self.data, self.shape[0], self.shape[1]);
         let mut shape = self.shape;
         shape.reverse();
-        let mut result = NdArray::zeros(shape);
-        for i in 0..shape[0] {
-            for j in 0..shape[1] {
-                result[&[i, j]] = self[&[j, i]];
-            }
-        }
-        result
+        NdArray::from(transpose_vec, shape)
     }
 }
 
