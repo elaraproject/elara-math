@@ -1,5 +1,6 @@
 use elara_log::prelude::*;
 use elara_math::prelude::*;
+use std::time::Instant;
 
 const EPOCHS: usize = 10000;
 const LR: f64 = 1e-5;
@@ -23,15 +24,18 @@ fn main() {
     ].reshape([4, 1]);
     let mut weights = Tensor::rand([3, 1]);
     println!("Weights before training: {:?}", weights);
+
+    let now = Instant::now();
     for epoch in 0..EPOCHS {
+        println!("Epoch {}", epoch);
         let output = train_data.matmul(&weights).relu();
         let loss = elara_math::mse(&output, &train_labels);
-        println!("Epoch {}, loss: {:?}", epoch, loss);
         loss.backward();
         let adjustment = weights.grad() * LR;
         weights = weights - Tensor::new(adjustment);
         weights.zero_grad();
     }
+    println!("{:?}", now.elapsed());
     let pred_data = tensor![[1.0, 0.0, 0.0]];
     let pred = &pred_data.matmul(&weights).relu();
     println!("Weights after training: {:?}", weights);

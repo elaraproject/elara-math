@@ -372,7 +372,7 @@ impl Mul<&Tensor> for &Tensor {
     }
 }
 
-// Elementwise multiplication without reference
+// Elementwise multiplication with reference
 impl Mul<Tensor> for Tensor {
     type Output = Tensor;
 
@@ -396,6 +396,24 @@ impl Div<&Tensor> for &Tensor {
             let b2_data = b_data.clone();
             value.prev[0].borrow_mut().grad += -value.grad.clone() / (a_data * a2_data);
             value.prev[1].borrow_mut().grad += -value.grad.clone() / (b_data * b2_data);
+        });
+        out
+    }
+}
+
+// Scalar multiplication without reference
+impl Mul<f64> for Tensor {
+    type Output = Tensor;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        let out = Tensor::new(self.borrow().data.clone() * rhs);
+        out.borrow_mut().prev = vec![self.clone(), Tensor::from_f64(rhs)];
+        out.borrow_mut().op = Some(String::from("×"));
+        out.borrow_mut().backward = Some(|value: &TensorData| {
+            let a_data = value.prev[0].borrow().data.clone();
+            let b_data = value.prev[1].borrow().data.clone();
+            value.prev[0].borrow_mut().grad += b_data * value.grad.clone();
+            value.prev[1].borrow_mut().grad += a_data * value.grad.clone();
         });
         out
     }
