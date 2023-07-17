@@ -9,5 +9,5 @@ fn main() {
     let y = &x * &x;
 
     y.backward();
-    println!("dy/dx: {:?}", x.grad().data);
+    println!("dy/dx: {:?}", x.grad().clone());
 }
