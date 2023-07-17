@@ -128,6 +128,15 @@ impl<T: Clone, const N: usize> NdArray<T, N> {
         }
     }
 
+    pub fn mmapv<F>(&mut self, f: F) 
+    where
+        T: Clone,
+        F: FnMut(T) -> T,
+    {
+        let data = self.data.clone().into_iter().map(f).collect();
+        self.data = data;
+    }
+
     pub fn fill(&mut self, val: T) {
         self.data = vec![val; self.shape.iter().product()]
     }
@@ -291,6 +300,7 @@ impl<T: Clone, const N: usize> IndexMut<&[usize; N]> for NdArray<T, N> {
     }
 }
 
+// Elementwise addition
 impl<T: Clone + Add<Output = T>, const N: usize> Add<&NdArray<T, N>> for &NdArray<T, N> {
     type Output = NdArray<T, N>;
 
@@ -326,10 +336,10 @@ impl<T: Clone + Add<Output = T>, const N: usize> Add<NdArray<T, N>> for NdArray<
 impl<T: Clone + Add<Output = T>, const N: usize> Add<T> for &NdArray<T, N> {
     type Output = NdArray<T, N>;
 
-    fn add(self, val: T) -> Self::Output {
-        let sum_vec = self.data.iter().map(|a| a.clone() + val.clone()).collect();
-
-        NdArray::from(sum_vec, self.shape)
+    fn add(self, rhs: T) -> Self::Output {
+        self.mapv(|a| a + rhs.clone())
+        // let sum_vec = self.data.iter().map(|a| a.clone() + val.clone()).collect();
+        // NdArray::from(sum_vec, self.shape)
     }
 }
 
@@ -345,13 +355,29 @@ impl<T: Clone + Add<Output = T>, const N: usize> Add<T> for NdArray<T, N> {
 
 impl<T: Clone + Add<Output = T>, const N: usize> AddAssign<T> for NdArray<T, N> {
     fn add_assign(&mut self, rhs: T) {
-        let sum_vec = self.data.iter().map(|a| a.clone() + rhs.clone()).collect();
+        self.mmapv(|a| a + rhs.clone())
+        // let sum_vec = self.data.iter().map(|a| a.clone() + rhs.clone()).collect();
+        // self.data = sum_vec;
+    }
+}
+
+
+
+// Elementwise addasign by reference
+impl<T: Clone + Add<Output = T>, const N: usize> AddAssign<&NdArray<T, N>> for &mut NdArray<T, N> {
+    fn add_assign(&mut self, rhs: &NdArray<T, N>) {
+        let sum_vec = self
+            .data
+            .iter()
+            .zip(&rhs.data)
+            .map(|(a, b)| a.clone() + b.clone())
+            .collect();
         self.data = sum_vec;
     }
 }
 
-// Elementwise addasign
-impl<T: Clone + Add<Output = T>, const N: usize> AddAssign<&NdArray<T, N>> for &mut NdArray<T, N> {
+// Elementwise addassign for reference to self
+impl<T: Clone + Add<Output = T>, const N: usize> AddAssign<&NdArray<T, N>> for NdArray<T, N> {
     fn add_assign(&mut self, rhs: &NdArray<T, N>) {
         let sum_vec = self
             .data
@@ -411,6 +437,18 @@ impl<T: Clone + Sub<Output = T>, const N: usize> SubAssign<&NdArray<T, N>> for &
     }
 }
 
+impl<T: Clone + Sub<Output = T>, const N: usize> SubAssign<&NdArray<T, N>> for NdArray<T, N> {
+    fn sub_assign(&mut self, rhs: &NdArray<T, N>) {
+        let sub_vec = self
+            .data
+            .iter()
+            .zip(&rhs.data)
+            .map(|(a, b)| a.clone() - b.clone())
+            .collect();
+        self.data = sub_vec;
+    }
+}
+
 impl<T: Clone + Sub<Output = T>, const N: usize> SubAssign<NdArray<T, N>> for NdArray<T, N> {
     fn sub_assign(&mut self, rhs: NdArray<T, N>) {
         let sub_vec: Vec<T> = self
@@ -436,9 +474,9 @@ impl<T: Clone + Sub<Output = T>, const N: usize> Sub<T> for &NdArray<T, N> {
     type Output = NdArray<T, N>;
 
     fn sub(self, val: T) -> Self::Output {
-        let sub_vec = self.data.iter().map(|a| a.clone() - val.clone()).collect();
-
-        NdArray::from(sub_vec, self.shape)
+        // let sub_vec = self.data.iter().map(|a| a.clone() - val.clone()).collect();
+        // NdArray::from(sub_vec, self.shape)
+        self.mapv(|a| a - val.clone())
     }
 }
 
