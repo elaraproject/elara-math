@@ -22,7 +22,7 @@ fn main() {
         [1.0],
         [0.0]
     ].reshape([4, 1]);
-    let mut weights = Tensor::rand([3, 1]);
+    let weights = Tensor::rand([3, 1]);
     println!("Weights before training: {:?}", weights);
 
     let now = Instant::now();
@@ -31,9 +31,9 @@ fn main() {
         let output = train_data.matmul(&weights).relu();
         let loss = elara_math::mse(&output, &train_labels);
         loss.backward();
-        let adjustment = weights.grad() * LR;
-        weights = weights - Tensor::new(adjustment);
         weights.zero_grad();
+        let data = &mut *weights.inner_mut();
+        data.data.scaled_add(-LR, &data.grad);
     }
     println!("{:?}", now.elapsed());
     let pred_data = tensor![[1.0, 0.0, 0.0]];
