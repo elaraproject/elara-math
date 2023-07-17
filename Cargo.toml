@@ -16,3 +16,4 @@ libblas = { git = "https://github.com/Schultzer/libblas.git" }
 transpose = "0.2.2"
 # ndarray = { version = "0.15.6", features = ["blas"] }
 ndarray = { version = "0.15.6" }
+ndarray-rand = "0.14.0"

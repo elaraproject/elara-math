@@ -2,8 +2,10 @@ use elara_log::prelude::*;
 mod array;
 // pub use array::{utils::*, Array2};
 use ndarray::prelude::*;
+use ndarray_rand::RandomExt;
+use ndarray_rand::rand_distr::Uniform;
 
-use crate::randf;
+// use crate::randf;
 
 use std::{
     cell::{Ref, RefCell, RefMut},
@@ -103,8 +105,8 @@ impl Tensor {
 
     /// Create a tensor filled with random values
     pub fn rand(shape: [usize; 2]) -> Tensor {
-        let arr: Array2<f64> = Array2::zeros(shape);
-        Tensor::new(arr.mapv(|_| randf()))
+        let arr: Array2<f64> = Array2::random((shape[0], shape[1]), Uniform::new(0., 1.));
+        Tensor::new(arr)
     }
 
     /// Create a tensor from a `f64`
@@ -112,10 +114,27 @@ impl Tensor {
         Tensor::new(array![[val]])
     }
 
+    /// Create a tensor of shape filled with ones
+    pub fn ones(shape: [usize; 2]) -> Tensor {
+        let arr: Array2<f64> = Array2::ones((shape[0], shape[1]));
+        Tensor::new(arr)
+    }
+
+    /// Update tensor value given its derivative
+    /// and a learning rate; useful for machine learning
+    /// applications
+    pub fn update(&self, lr: f64) {
+        let mut data = self.inner_mut();
+        let grad = data.grad.clone();
+        data.data.scaled_add(-lr, &grad);
+    }
+
     /// Create a tensor from a range
-    // pub fn arange<I: Iterator<Item = i32>>(range: I) -> Tensor {
-    //     Tensor::new(Array2::arange(range).mapv(|el| el as f64))
-    // }
+    pub fn arange<I: Iterator<Item = i32>>(range: I, shape: [usize; 2]) -> Tensor {
+        // Tensor::new(Array2::from_iter(range).mapv(|el| el as f64))
+        let arr = Array::from_iter(range).mapv(|el| el as f64).into_shape((shape[0], shape[1])).unwrap();
+        Tensor::new(arr)
+    }
 
     /// Change the shape of a tensor
     pub fn reshape(&mut self, shape: [usize; 2]) -> Tensor {
@@ -208,7 +227,6 @@ impl Tensor {
 
     /// Sigmoid function for tensors (not recommended as well)
     pub fn sigmoid(&self) -> Tensor {
-        warn!("sigmoid() is not recommended to be used, use relu() instead");
         let sigmoid_array = self.borrow().data.mapv(|val| 1.0 / (1.0 + (-val).exp()));
         let out = Tensor::new(sigmoid_array);
         out.inner_mut().prev = vec![self.clone()];
@@ -256,7 +274,7 @@ impl Tensor {
         Ref::map((*self.0).borrow(), |mi| &mi.data)
     }
 
-    pub fn data_mut(&self) -> impl Deref<Target = Array2<f64>> + '_ {
+    pub fn data_mut(&self) -> impl DerefMut<Target = Array2<f64>> + '_ {
         RefMut::map((*self.0).borrow_mut(), |mi| &mut mi.data)
     }
 
@@ -316,7 +334,7 @@ impl Debug for Tensor {
 impl Add<&Tensor> for &Tensor {
     type Output = Tensor;
     fn add(self, rhs: &Tensor) -> Self::Output {
-        let out = Tensor::new(self.borrow().data.clone() + rhs.borrow().data.clone());
+        let out = Tensor::new(self.data().deref() + rhs.data().deref());
         out.inner_mut().prev = vec![self.clone(), rhs.clone()];
         out.inner_mut().op = Some(String::from("+"));
         out.inner_mut().backward = Some(|value: &TensorData| {
@@ -335,11 +353,27 @@ impl Add<Tensor> for Tensor {
     }
 }
 
+// Scalar addition without reference
+impl Add<f64> for Tensor {
+    type Output = Tensor;
+    fn add(self, rhs: f64) -> Self::Output {
+        let out = Tensor::new(self.data().deref() + rhs);
+        out.inner_mut().prev = vec![self.clone(), Tensor::from_f64(rhs)];
+        out.inner_mut().op = Some(String::from("+"));
+        out.inner_mut().backward = Some(|value: &TensorData| {
+            value.prev[0].grad_mut().add_assign(&value.grad);
+            value.prev[1].grad_mut().add_assign(&value.grad);
+        });
+        out
+        
+    }
+}
+
 // Elementwise subtraction by reference
 impl Sub<&Tensor> for &Tensor {
     type Output = Tensor;
     fn sub(self, rhs: &Tensor) -> Self::Output {
-        let out = Tensor::new(self.borrow().data.clone() - rhs.borrow().data.clone());
+        let out = Tensor::new(self.data().deref() - rhs.data().deref());
         out.inner_mut().prev = vec![self.clone(), rhs.clone()];
         out.inner_mut().op = Some(String::from("-"));
         out.inner_mut().backward = Some(|value: &TensorData| {
@@ -358,12 +392,28 @@ impl Sub<Tensor> for Tensor {
     }
 }
 
+// Scalar subtraction without reference
+impl Sub<f64> for Tensor {
+    type Output = Tensor;
+    fn sub(self, rhs: f64) -> Self::Output {
+        let out = Tensor::new(self.data().deref() - rhs);
+        out.inner_mut().prev = vec![self.clone(), Tensor::from_f64(rhs)];
+        out.inner_mut().op = Some(String::from("-"));
+        out.inner_mut().backward = Some(|value: &TensorData| {
+            value.prev[0].grad_mut().add_assign(&value.grad);
+            value.prev[1].grad_mut().add_assign(&value.grad);
+        });
+        out
+        
+    }
+}
+
 // Elementwise multiplication without reference
 impl Mul<&Tensor> for &Tensor {
     type Output = Tensor;
 
     fn mul(self, rhs: &Tensor) -> Self::Output {
-        let out = Tensor::new(self.borrow().data.clone() * rhs.borrow().data.clone());
+        let out = Tensor::new(self.data().deref() * rhs.data().deref());
         out.inner_mut().prev = vec![self.clone(), rhs.clone()];
         out.inner_mut().op = Some(String::from("×"));
         out.inner_mut().backward = Some(|value: &TensorData| {
@@ -390,7 +440,7 @@ impl Div<&Tensor> for &Tensor {
     type Output = Tensor;
 
     fn div(self, rhs: &Tensor) -> Self::Output {
-        let out = Tensor::new(self.borrow().data.clone() / rhs.borrow().data.clone());
+        let out = Tensor::new(self.data().deref() / rhs.data().deref());
         out.inner_mut().prev = vec![self.clone(), rhs.clone()];
         out.inner_mut().op = Some(String::from("/"));
         out.inner_mut().backward = Some(|value: &TensorData| {
@@ -410,7 +460,7 @@ impl Mul<f64> for Tensor {
     type Output = Tensor;
 
     fn mul(self, rhs: f64) -> Self::Output {
-        let out = Tensor::new(self.borrow().data.clone() * rhs);
+        let out = Tensor::new(self.data().deref() * rhs);
         out.inner_mut().prev = vec![self.clone(), Tensor::from_f64(rhs)];
         out.inner_mut().op = Some(String::from("×"));
         out.inner_mut().backward = Some(|value: &TensorData| {
