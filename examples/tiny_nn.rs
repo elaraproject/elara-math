@@ -2,8 +2,12 @@ use elara_log::prelude::*;
 use elara_math::prelude::*;
 use std::time::Instant;
 
-const EPOCHS: usize = 9000;
+const EPOCHS: usize = 10000;
 const LR: f64 = 1e-5;
+
+fn forward_pass(data: &Tensor, weights: &Tensor, biases: &Tensor) -> Tensor {
+    (&data.matmul(&weights) + &biases).relu()
+}
 
 fn main() {
     // Initialize logging library
@@ -22,20 +26,23 @@ fn main() {
         [1.0],
         [0.0]
     ].reshape([4, 1]);
-    let weights = Tensor::ones([3, 1]);
+    let weights = Tensor::rand([3, 1]);
+    let biases = Tensor::rand([4, 1]);
     println!("Weights before training:\n{:?}", weights);
     let now = Instant::now();
     for epoch in 0..(EPOCHS + 1) {
-        let output = train_data.matmul(&weights).relu();
+        let output = forward_pass(&train_data, &weights, &biases);
         let loss = elara_math::mse(&output, &train_labels);
         println!("Epoch {}, loss {:?}", epoch, loss);
         loss.backward();
         weights.update(LR);
         weights.zero_grad();
+        biases.update(LR);
+        biases.zero_grad();
     }
     println!("{:?}", now.elapsed());
     let pred_data = tensor![[1.0, 0.0, 0.0]];
-    let pred = &pred_data.matmul(&weights).relu();
+    let pred = forward_pass(&pred_data, &weights, &biases);
     println!("Weights after training:\n{:?}", weights);
     println!("Prediction [1, 0, 0] -> {:?}", pred);
 }
