@@ -31,7 +31,7 @@ macro_rules! tensor {
 #[macro_export]
 macro_rules! scalar {
     ($x:expr) => {
-        Tensor::from_f64($crate::array!($x))
+        Tensor::from_f64($x)
     };
 }
 
@@ -214,10 +214,8 @@ impl Tensor {
         out.inner_mut().prev = vec![self.clone(), Tensor::from_f64(power)];
         out.inner_mut().op = Some(String::from("^"));
         out.inner_mut().backward = Some(|value: &TensorData| {
-            let base = value.prev[0].borrow().data.clone();
-            let p = value.prev[1].borrow().data.clone();
-            let base_vec = base.mapv(|val| val.powf(p.first().unwrap() - 1.0));
-            value.prev[0].grad_mut().scaled_add(1.0, &(p * base_vec * value.grad.clone()));
+            let base_vec = value.prev[0].data().mapv(|val| val.powf(value.prev[1].data()[[0, 0]] - 1.0));
+            value.prev[0].grad_mut().scaled_add(1.0, &(value.prev[1].data().deref() * base_vec * value.grad.clone()));
         });
         out
     }
@@ -259,18 +257,24 @@ impl Tensor {
     //     self.inner_mut().data[idx]
     // }
 
+    /// Get the underlying `TensorData` of a tensor
     pub fn inner(&self) -> Ref<TensorData> {
         (*self.0).borrow()
     }
 
+    /// Get the underlying `TensorData` of a tensor
+    /// as mutable
     pub fn inner_mut(&self) -> RefMut<TensorData> {
         (*self.0).borrow_mut()
     }
 
+    /// Get the underlying data NdArray of a tensor
     pub fn data(&self) -> impl Deref<Target = Array2<f64>> + '_ {
         Ref::map((*self.0).borrow(), |mi| &mi.data)
     }
 
+    /// Get the underlying data NdArray of a tensor
+    /// as mutable
     pub fn data_mut(&self) -> impl DerefMut<Target = Array2<f64>> + '_ {
         RefMut::map((*self.0).borrow_mut(), |mi| &mut mi.data)
     }
@@ -282,6 +286,7 @@ impl Tensor {
     }
 
     /// Get the gradient of a tensor as mutable
+    /// Remember to call `backward()` first!
     pub fn grad_mut(&self) -> impl DerefMut<Target = Array2<f64>> + '_ {
         RefMut::map((*self.0).borrow_mut(), |mi| &mut mi.grad)
     }
