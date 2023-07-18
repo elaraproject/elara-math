@@ -6,7 +6,7 @@ const EPOCHS: usize = 10000;
 const LR: f64 = 1e-5;
 
 fn forward_pass(data: &Tensor, weights: &Tensor, biases: &Tensor) -> Tensor {
-    (&data.matmul(&weights) + &biases).relu()
+    (&data.matmul(&weights) + biases).relu()
 }
 
 fn main() {
