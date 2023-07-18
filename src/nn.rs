@@ -92,6 +92,12 @@ impl Model {
         }
     }
 
+    pub fn zero_grad(&self) {
+        for t in self.parameters().iter() {
+            t.zero_grad();
+        }
+    }
+
     pub fn fit(&mut self, x: &Tensor, y: &Tensor, epochs: usize, lr: f64, debug: bool) {
         for epoch in 0..(epochs + 1) {
             let out = self.forward(x);
@@ -101,6 +107,7 @@ impl Model {
             }
             loss.backward();
             self.update(lr);
+            self.zero_grad();
         }
     }
 
