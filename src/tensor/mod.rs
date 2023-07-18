@@ -1,6 +1,4 @@
 use elara_log::prelude::*;
-mod array;
-// pub use array::{utils::*, Array2};
 use ndarray::prelude::*;
 use ndarray_rand::RandomExt;
 use ndarray_rand::rand_distr::Uniform;
@@ -131,12 +129,11 @@ impl Tensor {
 
     /// Create a tensor from a range
     pub fn arange<I: Iterator<Item = i32>>(range: I, shape: [usize; 2]) -> Tensor {
-        // Tensor::new(Array2::from_iter(range).mapv(|el| el as f64))
         let arr = Array::from_iter(range).mapv(|el| el as f64).into_shape((shape[0], shape[1])).unwrap();
         Tensor::new(arr)
     }
 
-    /// Change the shape of a tensor
+    /// Change the shape of a tensor and return a new tensor
     pub fn reshape(&mut self, shape: [usize; 2]) -> Tensor {
         Tensor::new(self.data().clone().into_shape(shape).unwrap())
     }
