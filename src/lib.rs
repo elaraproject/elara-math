@@ -11,9 +11,11 @@ offering:
 
 mod num;
 mod tensor;
+mod nn;
 
 pub use num::*;
 pub use tensor::*;
+pub use nn::*;
 
 /// `elara-math` prelude
 pub mod prelude;
