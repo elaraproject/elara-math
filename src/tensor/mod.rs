@@ -340,8 +340,8 @@ impl Add<&Tensor> for &Tensor {
         out.inner_mut().prev = vec![self.clone(), rhs.clone()];
         out.inner_mut().op = Some(String::from("+"));
         out.inner_mut().backward = Some(|value: &TensorData| {
-            value.prev[0].grad_mut().add_assign(&value.grad);
-            value.prev[1].grad_mut().add_assign(&value.grad);
+            value.prev[0].grad_mut().scaled_add(1.0, &value.grad);
+            value.prev[1].grad_mut().scaled_add(1.0, &value.grad);
         });
         out
     }
@@ -363,8 +363,8 @@ impl Add<f64> for Tensor {
         out.inner_mut().prev = vec![self.clone(), Tensor::from_f64(rhs)];
         out.inner_mut().op = Some(String::from("+"));
         out.inner_mut().backward = Some(|value: &TensorData| {
-            value.prev[0].grad_mut().add_assign(&value.grad);
-            value.prev[1].grad_mut().add_assign(&value.grad);
+            value.prev[0].grad_mut().scaled_add(1.0, &value.grad);
+            value.prev[1].grad_mut().scaled_add(1.0, &value.grad);
         });
         out
         
@@ -379,8 +379,8 @@ impl Sub<&Tensor> for &Tensor {
         out.inner_mut().prev = vec![self.clone(), rhs.clone()];
         out.inner_mut().op = Some(String::from("-"));
         out.inner_mut().backward = Some(|value: &TensorData| {
-            value.prev[0].grad_mut().sub_assign(&value.grad);
-            value.prev[1].grad_mut().sub_assign(&value.grad);
+            value.prev[0].grad_mut().scaled_add(-1.0, &value.grad);
+            value.prev[1].grad_mut().scaled_add(-1.0, &value.grad);
         });
         out
     }
@@ -402,8 +402,9 @@ impl Sub<f64> for Tensor {
         out.inner_mut().prev = vec![self.clone(), Tensor::from_f64(rhs)];
         out.inner_mut().op = Some(String::from("-"));
         out.inner_mut().backward = Some(|value: &TensorData| {
-            value.prev[0].grad_mut().add_assign(&value.grad);
-            value.prev[1].grad_mut().add_assign(&value.grad);
+            let dv = arr2(&[[value.grad.sum()]]);
+            value.prev[0].grad_mut().scaled_add(-1.0, &dv);
+            value.prev[1].grad_mut().scaled_add(-1.0, &dv);
         });
         out
         
@@ -419,10 +420,16 @@ impl Mul<&Tensor> for &Tensor {
         out.inner_mut().prev = vec![self.clone(), rhs.clone()];
         out.inner_mut().op = Some(String::from("×"));
         out.inner_mut().backward = Some(|value: &TensorData| {
-            let a_data = value.prev[0].borrow().data.clone();
-            let b_data = value.prev[1].borrow().data.clone();
-            value.prev[0].grad_mut().scaled_add(1.0, &(b_data * &value.grad));
-            value.prev[1].grad_mut().scaled_add(1.0, &(a_data * &value.grad));
+            // |grad, a, b| { (grad * b, grad * a) }
+            let (dv1, dv2) = {(
+                &value.grad * value.prev[1].data().deref(), &value.grad * value.prev[0].data().deref()
+            )};
+            value.prev[0].grad_mut().scaled_add(1.0, &dv1);
+            value.prev[1].grad_mut().scaled_add(1.0, &dv2);
+            // let mut a_data = value.prev[0].inner_mut();
+            // let mut b_data = value.prev[1].inner_mut();
+            // a_data.grad.scaled_add(1.0, &(&b_data.data * &value.grad));
+            // b_data.grad.scaled_add(1.0, &(&a_data.data * &value.grad));
         });
         out
     }
@@ -466,10 +473,13 @@ impl Mul<f64> for Tensor {
         out.inner_mut().prev = vec![self.clone(), Tensor::from_f64(rhs)];
         out.inner_mut().op = Some(String::from("×"));
         out.inner_mut().backward = Some(|value: &TensorData| {
-            let a_data = value.prev[0].data();
-            let b_data = value.prev[1].data();
-            value.prev[0].inner_mut().grad.scaled_add(1.0, &(b_data.deref() * &value.grad));
-            value.prev[1].inner_mut().grad.scaled_add(1.0, &(a_data.deref() * &value.grad));
+            let (mut dv1, mut dv2) = {(
+                &value.grad * value.prev[1].data().deref(), &value.grad * value.prev[0].data().deref()
+            )};
+            dv1 = arr2(&[[dv1.sum()]]);
+            dv2 = arr2(&[[dv2.sum()]]);
+            value.prev[0].grad_mut().scaled_add(1.0, &dv1);
+            value.prev[1].grad_mut().scaled_add(1.0, &dv2);
         });
         out
     }
