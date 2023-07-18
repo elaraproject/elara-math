@@ -1,1 +1,1 @@
-pub use crate::{tensor, Tensor};
+pub use crate::{tensor, scalar, Tensor};
