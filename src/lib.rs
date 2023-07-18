@@ -4,8 +4,8 @@ library in Rust. It tries to be the analogue of [SciPy](https://scipy.org/),
 [NumPy](https://numpy.org/), and [PyTorch](https://pytorch.org/),
 offering:
 
-- Multidimensional arrays (via `NdArray<T, N>`)
 - Differentiable tensors (via `Tensor`)
+- An implementation of reverse-mode autodifferentiation
 - Numerical solvers for a variety of numerical analysis problems (still WIP)
 */
 
