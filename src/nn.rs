@@ -24,6 +24,8 @@ shapes as the prior layer's output shapes.
 set it too low or it will cause underfitting
 "#;
 
+/// A general trait of a layer of a neural
+/// network
 pub trait Layer {
     fn parameters(&self) -> Vec<&Tensor>;
 
@@ -36,6 +38,7 @@ pub trait Layer {
     }
 }
 
+/// A 2D linearly densely-connected layer
 pub struct Linear {
     pub weights: Tensor,
     pub biases: Tensor,
@@ -45,6 +48,7 @@ pub struct Linear {
 }
 
 impl Linear {
+    /// Create a new linear layer
     pub fn new(input_dim: usize, output_dim: usize, activation: Activations) -> Linear {
         let weights = Array2::random((input_dim, output_dim), Uniform::new(0.0, 1.0));
         let biases = Array2::random((1, output_dim), Uniform::new(0.0, 0.1));
@@ -57,6 +61,8 @@ impl Linear {
         }
     }
 
+    /// Get the input and output shape
+    /// of a linear layer
     pub fn shape(&self) -> (usize, usize) {
         (self.input_dim, self.output_dim)
     }
@@ -79,32 +85,39 @@ impl Layer for Linear {
     }
 }
 
+/// Common activation functions
 pub enum Activations {
     ReLU,
     Sigmoid,
     None
 }
 
+/// Common optimizers
 pub enum Optimizers {
     SGD,
     BGD,
     None
 }
 
+/// A neural network model
+/// with a keras-inspired API
 pub struct Model {
     pub layers: Vec<Linear>,
     pub optimizer: Optimizers
 }
 
 impl Model {
+    /// Create a new model
     pub fn new() -> Model {
         Model { layers: vec![], optimizer: Optimizers::None }
     }
 
+    /// Add a layer to a model
     pub fn add_layer(&mut self, layer: Linear) { 
         self.layers.push(layer)
     }
 
+    /// Compute the forward pass of a model
     pub fn forward(&self, x: &Tensor) -> Tensor {
         let mut x = x.clone();
         for layer in self.layers.iter() {
@@ -113,6 +126,7 @@ impl Model {
         x
     }
 
+    /// Get the weights and biases of a model
     pub fn parameters(&self) -> Vec<&Tensor> {
         self.layers
             .iter()
@@ -121,22 +135,24 @@ impl Model {
             .collect()
     }
 
-    pub fn update(&self, lr: f64) {
+    fn update(&self, lr: f64) {
         for t in self.parameters().iter() {
             t.update(lr);
         }
     }
 
-    pub fn zero_grad(&self) {
+    fn zero_grad(&self) {
         for t in self.parameters().iter() {
             t.zero_grad();
         }
     }
 
+    /// Configure a model with an optimizer
     pub fn compile(&mut self, optimizer: Optimizers) {
         self.optimizer = optimizer;
     }
 
+    /// Train a model
     pub fn fit(&mut self, x: &Tensor, y: &Tensor, epochs: usize, lr: f64, debug: bool) {
         // Do checks to make sure model and input data is valid
         if debug {
@@ -197,6 +213,7 @@ impl Model {
         }
     }
 
+    /// Make predictions from a model
     pub fn predict(&self, x: &Tensor) -> Tensor {
         self.forward(x)
     }

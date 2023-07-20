@@ -162,11 +162,6 @@ impl Tensor {
         Tensor::new(self.data().clone().into_shape(shape).unwrap())
     }
 
-    /// Get a value from a tensor by index
-    // pub fn index(&self, idx: &[usize; 2]) -> f64 {
-    //     self.borrow().data[idx]
-    // }
-
     /// Get the number of elements in a tensor
     pub fn len(&self) -> usize {
         self.data().len()
@@ -179,15 +174,6 @@ impl Tensor {
         out.inner_mut().prev = vec![self.clone()];
         out.inner_mut().op = Some(String::from("sum"));
         out.inner_mut().backward = Some(|value: &TensorData| {
-            // let shape = value.prev[0].data().raw_dim();
-            // let ones: Array2<f64> = Array2::ones(shape).mapv(|el| el as f64);
-            // let grad_value = value.grad[[0, 0]];
-            // value.prev[0].grad_mut().add_assign(ones * grad_value);
-
-            // value.prev[0].grad_mut().scaled_add(1.0, &value.prev[0].inner().grad)
-            // let shape = value.prev[0].data().raw_dim();
-            // let ones: Array2<f64> = Array2::ones(shape).mapv(|el: i32| el as f64);
-            // let grad_value = value.grad[[0, 0]];
             value.prev[0].grad_mut().scaled_add(1.0, &value.grad);
         });
         out
@@ -224,13 +210,8 @@ impl Tensor {
         out
     }
 
-    // WARNING: power function breaks easily and is hacked together with bits
-    // and pieces from a soul that is haunted with weeks of midnight code
-    // NEEDS TO BE REWRITTEN!!!
-
     /// Power function for tensors (not recommended as it breaks easily)
     pub fn pow(&self, power: f64) -> Tensor {
-        warn!("pow() is not yet workable at the moment");
         let pow_array = self.data().mapv(|val| val.powf(power));
         let out = Tensor::new(pow_array);
         out.inner_mut().prev = vec![self.clone(), Tensor::from_f64(power)];
@@ -242,7 +223,7 @@ impl Tensor {
         out
     }
 
-    /// Sigmoid function for tensors (not recommended as well)
+    /// Sigmoid function for tensors
     pub fn sigmoid(&self) -> Tensor {
         let sigmoid_array = self.borrow().data.mapv(|val| 1.0 / (1.0 + (-val).exp()));
         let out = Tensor::new(sigmoid_array);
@@ -275,11 +256,6 @@ impl Tensor {
         });
         out
     }
-
-    /// Get an element of a tensor as mutable
-    // pub fn index_mut(&mut self, idx: &[usize; 2]) -> f64 {
-    //     self.inner_mut().data[idx]
-    // }
 
     /// Get the underlying `TensorData` of a tensor
     pub fn inner(&self) -> Ref<TensorData> {
@@ -345,6 +321,7 @@ impl Tensor {
     }
 
     // Thanks to: https://stackoverflow.com/questions/76727378/how-to-implement-iter-for-a-type-that-wraps-an-ndarray
+    /// Iterate over elements of a tensor
     pub fn iter(&self) -> impl Iterator<Item = Tensor> + '_ {
         let data = self.data();
         (0..data.shape()[0]).map(move |i| {
@@ -458,190 +435,3 @@ impl_binary_op![Add, add, +, |grad, _a, _b| { (grad * 1.0, grad * 1.0) }];
 impl_binary_op![Sub, sub, -, |grad, _a, _b| { (grad * 1.0, grad * -1.0) }];
 impl_binary_op![Mul, mul, *, |grad, a, b| { (grad * b, grad * a) }];
 impl_binary_op![Div, div, /, |grad, a, b| { (grad * 1.0 / b, grad * -1.0 * a / (b * b)) }];
-
-// // Elementwise multiplication without reference
-// impl Mul<&Tensor> for &Tensor {
-//     type Output = Tensor;
-// 
-//     fn mul(self, rhs: &Tensor) -> Self::Output {
-//         let out = Tensor::new(self.data().deref() * rhs.data().deref());
-//         out.inner_mut().prev = vec![self.clone(), rhs.clone()];
-//         out.inner_mut().op = Some(String::from("×"));
-//         out.inner_mut().backward = Some(|value: &TensorData| {
-//             // |grad, a, b| { (grad * b, grad * a) }
-//             let (dv1, dv2) = {(
-//                 &value.grad * value.prev[1].data().deref(), &value.grad * value.prev[0].data().deref()
-//             )};
-//             value.prev[0].grad_mut().scaled_add(1.0, &dv1);
-//             value.prev[1].grad_mut().scaled_add(1.0, &dv2);
-//             // let mut a_data = value.prev[0].inner_mut();
-//             // let mut b_data = value.prev[1].inner_mut();
-//             // a_data.grad.scaled_add(1.0, &(&b_data.data * &value.grad));
-//             // b_data.grad.scaled_add(1.0, &(&a_data.data * &value.grad));
-//         });
-//         out
-//     }
-// }
-// // Elementwise addition by reference
-// impl Add<&Tensor> for &Tensor {
-//     type Output = Tensor;
-//     fn add(self, rhs: &Tensor) -> Self::Output {
-//         let out = Tensor::new(self.data().deref() + rhs.data().deref());
-//         out.inner_mut().prev = vec![self.clone(), rhs.clone()];
-//         out.inner_mut().op = Some(String::from("+"));
-//         out.inner_mut().backward = Some(|value: &TensorData| {
-//             value.prev[0].grad_mut().scaled_add(1.0, &value.grad);
-//             value.prev[1].grad_mut().scaled_add(1.0, &value.grad);
-// 
-//         });
-//         out
-//     }
-// }
-// 
-// // Elementwise addition without reference
-// impl Add<Tensor> for Tensor {
-//     type Output = Tensor;
-//     fn add(self, rhs: Tensor) -> Self::Output {
-//         &self + &rhs
-//     }
-// }
-// 
-// // Scalar addition by reference
-// impl Add<f64> for &Tensor {
-//     type Output = Tensor;
-//     fn add(self, rhs: f64) -> Self::Output {
-//         let out = Tensor::new(self.data().deref() + rhs);
-//         out.inner_mut().prev = vec![self.clone(), Tensor::from_f64(rhs)];
-//         out.inner_mut().op = Some(String::from("+"));
-//         out.inner_mut().backward = Some(|value: &TensorData| {
-//             value.prev[0].grad_mut().scaled_add(1.0, &value.grad);
-//             value.prev[1].grad_mut().scaled_add(1.0, &value.grad);
-//         });
-//         out
-//         
-//     }
-// }
-// 
-// // Scalar addition without reference
-// impl Add<f64> for Tensor {
-//     type Output = Tensor;
-//     fn add(self, rhs: f64) -> Self::Output {
-//         &self + rhs
-//     }
-// }
-// 
-// // Elementwise subtraction by reference
-// impl Sub<&Tensor> for &Tensor {
-//     type Output = Tensor;
-//     fn sub(self, rhs: &Tensor) -> Self::Output {
-//         let out = Tensor::new(self.data().deref() - rhs.data().deref());
-//         out.inner_mut().prev = vec![self.clone(), rhs.clone()];
-//         out.inner_mut().op = Some(String::from("-"));
-//         out.inner_mut().backward = Some(|value: &TensorData| {
-//             value.prev[0].grad_mut().scaled_add(-1.0, &value.grad);
-//             value.prev[1].grad_mut().scaled_add(-1.0, &value.grad);
-//         });
-//         out
-//     }
-// }
-// 
-// // Elementwise subtraction without reference
-// impl Sub<Tensor> for Tensor {
-//     type Output = Tensor;
-//     fn sub(self, rhs: Tensor) -> Self::Output {
-//         &self - &rhs
-//     }
-// }
-// 
-// // Scalar subtraction by reference
-// impl Sub<f64> for &Tensor {
-//     type Output = Tensor;
-//     fn sub(self, rhs: f64) -> Self::Output {
-//         let out = Tensor::new(self.data().deref() - rhs);
-//         out.inner_mut().prev = vec![self.clone(), Tensor::from_f64(rhs)];
-//         out.inner_mut().op = Some(String::from("-"));
-//         out.inner_mut().backward = Some(|value: &TensorData| {
-//             let dv = arr2(&[[value.grad.sum()]]);
-//             value.prev[0].grad_mut().scaled_add(-1.0, &dv);
-//             value.prev[1].grad_mut().scaled_add(-1.0, &dv);
-//         });
-//         out
-//         
-//     }
-// }
-// 
-// // Scalar subtraction without reference
-// impl Sub<f64> for Tensor {
-//     type Output = Tensor;
-//     fn sub(self, rhs: f64) -> Self::Output {
-//         &self - rhs
-//     }
-// }
-// 
-// 
-// // Elementwise multiplication with reference
-// impl Mul<Tensor> for Tensor {
-//     type Output = Tensor;
-// 
-//     fn mul(self, rhs: Tensor) -> Self::Output {
-//         &self * &rhs
-//     }
-// }
-// 
-// // Elementwise division without reference
-// impl Div<&Tensor> for &Tensor {
-//     type Output = Tensor;
-// 
-//     fn div(self, rhs: &Tensor) -> Self::Output {
-//         let out = Tensor::new(self.data().deref() / rhs.data().deref());
-//         out.inner_mut().prev = vec![self.clone(), rhs.clone()];
-//         out.inner_mut().op = Some(String::from("/"));
-//         out.inner_mut().backward = Some(|value: &TensorData| {
-//             let a_data = value.prev[0].data().clone();
-//             let b_data = value.prev[1].data().clone();
-//             let a2_data = a_data.clone();
-//             let b2_data = b_data.clone();
-//             value.prev[0].grad_mut().scaled_add(1.0, &(-&value.grad / (a_data * a2_data)));
-//             value.prev[1].grad_mut().scaled_add(1.0, &(-&value.grad / (b_data * b2_data)));
-//         });
-//         out
-//     }
-// }
-// 
-// // Scalar multiplication by reference
-// impl Mul<f64> for &Tensor {
-//     type Output = Tensor;
-// 
-//     fn mul(self, rhs: f64) -> Self::Output {
-//         let out = Tensor::new(self.data().deref() * rhs);
-//         out.inner_mut().prev = vec![self.clone(), Tensor::from_f64(rhs)];
-//         out.inner_mut().op = Some(String::from("×"));
-//         out.inner_mut().backward = Some(|value: &TensorData| {
-//             let (mut dv1, mut dv2) = {(
-//                 &value.grad * value.prev[1].data().deref(), &value.grad * value.prev[0].data().deref()
-//             )};
-//             dv1 = arr2(&[[dv1.sum()]]);
-//             dv2 = arr2(&[[dv2.sum()]]);
-//             value.prev[0].grad_mut().scaled_add(1.0, &dv1);
-//             value.prev[1].grad_mut().scaled_add(1.0, &dv2);
-//         });
-//         out
-//     }
-// }
-// 
-// // Scalar multiplication without reference
-// impl Mul<f64> for Tensor {
-//     type Output = Tensor;
-// 
-//     fn mul(self, rhs: f64) -> Self::Output {
-//         &self * rhs
-//     }
-// }
-// 
-// impl Div<Tensor> for Tensor {
-//     type Output = Tensor;
-// 
-//     fn div(self, rhs: Tensor) -> Self::Output {
-//         &self / &rhs
-//     }
-// }
