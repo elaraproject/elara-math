@@ -1,5 +1,6 @@
 use crate::Tensor;
 use crate::mse;
+use elara_log::prelude::*;
 use ndarray::prelude::*;
 use ndarray_rand::RandomExt;
 use ndarray_rand::rand_distr::Uniform;
@@ -19,7 +20,9 @@ pub trait Layer {
 pub struct Linear {
     pub weights: Tensor,
     pub biases: Tensor,
-    pub activation: Activations
+    pub activation: Activations,
+    input_dim: usize,
+    output_dim: usize
 }
 
 impl Linear {
@@ -29,14 +32,20 @@ impl Linear {
         Linear {
             weights: Tensor::new(weights),
             biases: Tensor::new(biases),
-            activation
+            activation,
+            input_dim,
+            output_dim
         }
+    }
+
+    pub fn shape(&self) -> (usize, usize) {
+        (self.input_dim, self.output_dim)
     }
 }
 
 impl Layer for Linear {
     fn parameters(&self) -> Vec<&Tensor> {
-        let mut p: Vec<&Tensor> = vec![&self.weights, &self.biases];
+        let p: Vec<&Tensor> = vec![&self.weights, &self.biases];
         p
     }
 
@@ -57,13 +66,20 @@ pub enum Activations {
     None
 }
 
+pub enum Optimizers {
+    SGD,
+    BGD,
+    None
+}
+
 pub struct Model {
     pub layers: Vec<Linear>,
+    pub optimizer: Optimizers
 }
 
 impl Model {
     pub fn new() -> Model {
-        Model { layers: vec![] }
+        Model { layers: vec![], optimizer: Optimizers::None }
     }
 
     pub fn add_layer(&mut self, layer: Linear) { 
@@ -98,16 +114,52 @@ impl Model {
         }
     }
 
+    pub fn compile(&mut self, optimizer: Optimizers) {
+        self.optimizer = optimizer;
+    }
+
     pub fn fit(&mut self, x: &Tensor, y: &Tensor, epochs: usize, lr: f64, debug: bool) {
-        for epoch in 0..(epochs + 1) {
-            let out = self.forward(x);
-            let loss = mse(&out, y);
-            if debug {
-                println!("Epoch {}, loss {:?}", epoch, loss);
+        // Do checks to make sure model is valid
+        if self.layers.is_empty() {
+            error!("[elara-math] The model does not contain any layers and cannot be trained.")
+        }
+        match self.optimizer {
+            Optimizers::None => { 
+                error!("[elara-math] The model was not configured with an optimizer and cannot be trained.")
+            },
+            _ => {}
+        };
+
+        for i in 0..self.layers.len() {
+            // Ignore last layer
+            if i < self.layers.len() - 1 {
+                if self.layers[i].shape().1 != self.layers[i + 1].shape().0 {
+                    error!("[elara-math] Layer #{} was configured with an output size of {}, while layer #{} was configured with an input size of {}. This is invalid, both should match.", i, self.layers[i].shape().1, i + 1, self.layers[i + 1].shape().0);
+                }
             }
-            loss.backward();
-            self.update(lr);
-            self.zero_grad();
+        }
+
+        for epoch in 0..(epochs + 1) {
+            match self.optimizer {
+                Optimizers::BGD => {
+                    let out = self.forward(x);
+                    let loss = mse(&out, y);
+                    if debug {
+                        println!("Epoch {}, loss {:?}", epoch, loss);
+                    }
+                    loss.backward();
+                    self.update(lr);
+                    self.zero_grad();
+                },
+                Optimizers::SGD => {
+                    let data = (x.inner_mut(), y.inner_mut());
+                    // for (x, y) in (x.data().deref().iter(), y.data().iter()) {}
+                    // for (x, y) in zip(x, y) {
+                    //     let out = self.forward(x);
+                    // }
+                },
+                _ => unreachable!()
+            }
         }
     }
 

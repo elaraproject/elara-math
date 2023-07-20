@@ -139,6 +139,14 @@ impl Tensor {
         Tensor::new(arr)
     }
 
+    /// Create a tensor containing a linearly-spaced
+    /// interval
+    pub fn linspace(start: f64, end: f64, num: usize) -> Tensor {
+        let arr = Array::linspace(start, end, num);
+        let arr_reshaped = arr.into_shape((num, 1)).unwrap();
+        Tensor::new(arr_reshaped)
+    }
+
     /// Change the shape of a tensor and return a new tensor
     pub fn reshape(&mut self, shape: [usize; 2]) -> Tensor {
         Tensor::new(self.data().clone().into_shape(shape).unwrap())
@@ -177,9 +185,7 @@ impl Tensor {
 
     /// Find the mean of a tensor
     pub fn mean(&self) -> Tensor {
-        let len = Tensor::from_f64(self.len() as f64);
-        let one = Tensor::from_f64(1.0);
-        (one / len) * self.sum()
+        (1.0 / self.data().len() as f64) * self.sum()
     }
 
     /// Exponential function for tensors
@@ -215,7 +221,7 @@ impl Tensor {
     /// Power function for tensors (not recommended as it breaks easily)
     pub fn pow(&self, power: f64) -> Tensor {
         warn!("pow() is not yet workable at the moment");
-        let pow_array = self.borrow().data.mapv(|val| val.powf(power));
+        let pow_array = self.data().mapv(|val| val.powf(power));
         let out = Tensor::new(pow_array);
         out.inner_mut().prev = vec![self.clone(), Tensor::from_f64(power)];
         out.inner_mut().op = Some(String::from("^"));
@@ -244,7 +250,9 @@ impl Tensor {
     pub fn matmul(&self, rhs: &Tensor) -> Tensor {
         let a_shape = self.shape();
         let b_shape = rhs.shape();
-        assert_eq!(a_shape.1, b_shape.0);
+        if a_shape.1 != b_shape.0 {
+            error!("You are attempting to matrix-multiply two matrices of size {} x {} and {} x {}. These shapes are not compatible.", a_shape.0, a_shape.1, b_shape.0, b_shape.1);
+        }
         let res: Array2<f64> = self.data().dot(rhs.data().deref());
         let out = Tensor::new(res);
         out.inner_mut().prev = vec![self.clone(), rhs.clone()];
