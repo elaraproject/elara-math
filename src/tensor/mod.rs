@@ -10,11 +10,20 @@ use std::{
     collections::HashSet,
     fmt::Debug,
     hash::{Hash, Hasher},
-    ops::{Add, Deref, DerefMut, Div, Mul, Sub, AddAssign, SubAssign},
+    ops::{Add, Deref, DerefMut, Div, Mul, Sub},
     rc::Rc,
 };
 
 use uuid::Uuid;
+
+/// A macro for counting the number of args
+/// passed to it
+#[macro_export]
+macro_rules! count {
+    [$($x:expr),*] => {
+        vec![$($x),*].len()
+    }
+}
 
 /// Macro for quickly creating tensors
 #[macro_export]
@@ -23,9 +32,10 @@ macro_rules! tensor {
         Tensor::new(ndarray::array!($([$($x,)*],)*))
     };
     [$($x:expr),*] => {
-        Tensor::new(ndarray::array!($($x),*))
+        Tensor::new(ndarray::array!($($x),*).into_shape(($crate::count![$($x),*], 1)).unwrap())
     };
 }
+
 
 /// Macro for quickly creating scalar tensors
 #[macro_export]
@@ -332,6 +342,26 @@ impl Tensor {
             });
             topo.push(self.clone());
         }
+    }
+
+    // Thanks to: https://stackoverflow.com/questions/76727378/how-to-implement-iter-for-a-type-that-wraps-an-ndarray
+    pub fn iter(&self) -> impl Iterator<Item = Tensor> + '_ {
+        let data = self.data();
+        (0..data.shape()[0]).map(move |i| {
+            let el = data.index_axis(Axis(0), i);
+            let reshaped_and_cloned_el = el
+                .into_shape((el.shape()[0], 1))
+                .unwrap()
+                .mapv(|el| el.clone());
+            Tensor::new(reshaped_and_cloned_el)
+        })
+    }
+}
+
+impl Iterator for Tensor {
+    type Item = Tensor;
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.iter().next().unwrap()) 
     }
 }
 

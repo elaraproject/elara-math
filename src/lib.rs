@@ -9,11 +9,9 @@ offering:
 - Numerical solvers for a variety of numerical analysis problems (still WIP)
 */
 
-mod num;
 mod tensor;
 mod nn;
 
-pub use num::*;
 pub use tensor::*;
 pub use nn::*;
 

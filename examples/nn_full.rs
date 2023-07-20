@@ -12,8 +12,8 @@ fn main() {
     model.add_layer(Linear::new(10, 10, Activations::None));
     model.add_layer(Linear::new(10, 1, Activations::None));
 
-    model.compile(Optimizers::BGD);
-    model.fit(&x, &y, 2000, 0.001, true);
+    model.compile(Optimizers::SGD);
+    model.fit(&x, &y, 500, 0.00001, true);
 
     let x_pred = scalar!(1.0);
     let y_pred = model.predict(&x_pred);

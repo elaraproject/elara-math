@@ -4,6 +4,25 @@ use elara_log::prelude::*;
 use ndarray::prelude::*;
 use ndarray_rand::RandomExt;
 use ndarray_rand::rand_distr::Uniform;
+use std::iter::zip;
+
+const DEBUGGING_GUIDE: &'static str = r#"
+This is a helpful debug guide to resolve common issues faced in using elara-math.
+If you meet an unexpected error, consider checking the following:
+
+1) Learning rate: Do not set this too high or it will cause divergence,
+and do not set this too low or it will cause limited loss reduction by getting
+stuck in a local minimum.
+
+2) Training data shapes: Ensure that the training data has the same length as the
+test data.
+
+3) Model layer shapes: Ensure that each of the model's layers has the same input
+shapes as the prior layer's output shapes.
+
+4) Epoch number: Do not set this too high or it will cause overfitting, or
+set it too low or it will cause underfitting
+"#;
 
 pub trait Layer {
     fn parameters(&self) -> Vec<&Tensor>;
@@ -28,7 +47,7 @@ pub struct Linear {
 impl Linear {
     pub fn new(input_dim: usize, output_dim: usize, activation: Activations) -> Linear {
         let weights = Array2::random((input_dim, output_dim), Uniform::new(0.0, 1.0));
-        let biases = Array2::zeros((1, output_dim));
+        let biases = Array2::random((1, output_dim), Uniform::new(0.0, 0.1));
         Linear {
             weights: Tensor::new(weights),
             biases: Tensor::new(biases),
@@ -119,10 +138,15 @@ impl Model {
     }
 
     pub fn fit(&mut self, x: &Tensor, y: &Tensor, epochs: usize, lr: f64, debug: bool) {
-        // Do checks to make sure model is valid
+        // Do checks to make sure model and input data is valid
+        if debug {
+            info!("{}", DEBUGGING_GUIDE);
+        }
+
         if self.layers.is_empty() {
             error!("[elara-math] The model does not contain any layers and cannot be trained.")
         }
+
         match self.optimizer {
             Optimizers::None => { 
                 error!("[elara-math] The model was not configured with an optimizer and cannot be trained.")
@@ -145,18 +169,28 @@ impl Model {
                     let out = self.forward(x);
                     let loss = mse(&out, y);
                     if debug {
-                        println!("Epoch {}, loss {:?}", epoch, loss);
+                        info!("Epoch {}, loss {:?}", epoch, loss);
                     }
                     loss.backward();
                     self.update(lr);
                     self.zero_grad();
                 },
                 Optimizers::SGD => {
-                    let data = (x.inner_mut(), y.inner_mut());
-                    // for (x, y) in (x.data().deref().iter(), y.data().iter()) {}
-                    // for (x, y) in zip(x, y) {
-                    //     let out = self.forward(x);
-                    // }
+                    let mut counter = 0;
+                    for (x_el, y_el) in zip(x.clone(), y.clone()) {
+                        if counter > x.shape().0 {
+                            break;
+                        }
+                        let out = self.forward(&x_el);
+                        let loss = mse(&out, &y_el);
+                        if debug {
+                            info!("Epoch {}, sample {}, loss {:?}", epoch, counter, loss);
+                        }
+                        loss.backward();
+                        self.update(lr);
+                        self.zero_grad();
+                        counter += 1;
+                    }
                 },
                 _ => unreachable!()
             }
