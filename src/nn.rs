@@ -4,6 +4,7 @@ use elara_log::prelude::*;
 use ndarray::prelude::*;
 use ndarray_rand::RandomExt;
 use ndarray_rand::rand_distr::Uniform;
+use std::fmt::Debug;
 use std::iter::zip;
 
 const DEBUGGING_GUIDE: &'static str = r#"
@@ -36,6 +37,8 @@ pub trait Layer {
             p.zero_grad();
         }
     }
+
+    fn shape(&self) -> (usize, usize);
 }
 
 /// A 2D linearly densely-connected layer
@@ -60,11 +63,11 @@ impl Linear {
             output_dim
         }
     }
+}
 
-    /// Get the input and output shape
-    /// of a linear layer
-    pub fn shape(&self) -> (usize, usize) {
-        (self.input_dim, self.output_dim)
+impl Debug for dyn Layer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Layer({}, {})", self.shape().0, self.shape().1)
     }
 }
 
@@ -82,6 +85,10 @@ impl Layer for Linear {
             Activations::None => out
         };
         out
+    }
+
+    fn shape(&self) -> (usize, usize) {
+        (self.input_dim, self.output_dim)
     }
 }
 
@@ -102,7 +109,7 @@ pub enum Optimizers {
 /// A neural network model
 /// with a keras-inspired API
 pub struct Model {
-    pub layers: Vec<Linear>,
+    pub layers: Vec<Box<dyn Layer>>,
     pub optimizer: Optimizers
 }
 
@@ -114,7 +121,7 @@ impl Model {
 
     /// Add a layer to a model
     pub fn add_layer(&mut self, layer: Linear) { 
-        self.layers.push(layer)
+        self.layers.push(Box::new(layer))
     }
 
     /// Compute the forward pass of a model
@@ -170,12 +177,9 @@ impl Model {
             _ => {}
         };
 
-        for i in 0..self.layers.len() {
-            // Ignore last layer
-            if i < self.layers.len() - 1 {
-                if self.layers[i].shape().1 != self.layers[i + 1].shape().0 {
-                    error!("[elara-math] Layer #{} was configured with an output size of {}, while layer #{} was configured with an input size of {}. This is invalid, both should match.", i, self.layers[i].shape().1, i + 1, self.layers[i + 1].shape().0);
-                }
+        for (idx, (layer, layer_next)) in self.layers.iter().zip(self.layers[1..self.layers.len()].iter()).enumerate() {
+            if layer.shape().1 != layer_next.shape().0 {
+                error!("[elara-math] Layer #{} was configured with an output size of {}, while layer #{} was configured with an input size of {}. This is invalid, both should match.", idx + 1, layer.shape().1, idx + 2, layer_next.shape().0);
             }
         }
 
