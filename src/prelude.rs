@@ -1,1 +1,1 @@
-pub use crate::{tensor, scalar, Tensor, nn::*};
+pub use crate::{tensor, scalar, Tensor, nn::*, integrate::*};
