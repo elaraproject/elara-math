@@ -3,9 +3,9 @@
 Elara Math is a Rust-native math library, developed as part of [Project Elara](https://github.com/elaraproject/)'s suite of open-source software libraries. It contains support for:
 
 - Tensors: N-dimensional arrays with built-in support for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation))\* (supported)
-- Linear algebra with tensors (supported)
+- Basic vectorized opertions and linear algebra with tensors (supported)
 - Numerical solvers for integrals & differential equations (partially supported\*\*, work-in-progress)
-- Basic machine learning tools for building feedforward fully-connected neural networks, with two APIs: one PyTorch-style, one TensorFlow-style
+- Basic machine learning tools for building feedforward fully-connected neural networks, with two APIs: one PyTorch-style, one TensorFlow-style (supported)
 
 \*: GPU tensors are not available yet, but GPU acceleration is planned to be added in the future
 
