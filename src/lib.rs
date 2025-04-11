@@ -11,6 +11,7 @@ offering:
 
 mod tensor;
 mod nn;
+mod integrate;
 
 pub use tensor::*;
 pub use nn::*;
