@@ -1,7 +1,7 @@
 use elara_log::prelude::*;
 use ndarray::prelude::*;
-use ndarray_rand::RandomExt;
 use ndarray_rand::rand_distr::Uniform;
+use ndarray_rand::RandomExt;
 
 // use crate::randf;
 
@@ -10,7 +10,7 @@ use std::{
     collections::HashSet,
     fmt::Debug,
     hash::{Hash, Hasher},
-    ops::{Add, Deref, DerefMut, Div, Mul, Sub},
+    ops::{Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
     rc::Rc,
 };
 
@@ -35,7 +35,6 @@ macro_rules! tensor {
         Tensor::new(ndarray::array!($($x),*).into_shape(($crate::count![$($x),*], 1)).unwrap())
     };
 }
-
 
 /// Macro for quickly creating scalar tensors
 #[macro_export]
@@ -145,7 +144,10 @@ impl Tensor {
 
     /// Create a tensor from a range
     pub fn arange<I: Iterator<Item = i32>>(range: I, shape: [usize; 2]) -> Tensor {
-        let arr = Array::from_iter(range).mapv(|el| el as f64).into_shape((shape[0], shape[1])).unwrap();
+        let arr = Array::from_iter(range)
+            .mapv(|el| el as f64)
+            .into_shape((shape[0], shape[1]))
+            .unwrap();
         Tensor::new(arr)
     }
 
@@ -192,7 +194,9 @@ impl Tensor {
         out.inner_mut().op = Some(String::from("exp"));
         out.inner_mut().backward = Some(|value: &TensorData| {
             let prev = value.prev[0].borrow().data.clone();
-            value.prev[0].grad_mut().scaled_add(1.0, &prev.mapv(|val| val.exp()));
+            value.prev[0]
+                .grad_mut()
+                .scaled_add(1.0, &prev.mapv(|val| val.exp()));
         });
         out
     }
@@ -204,7 +208,9 @@ impl Tensor {
         out.inner_mut().prev = vec![self.clone()];
         out.inner_mut().op = Some(String::from("ReLU"));
         out.inner_mut().backward = Some(|value: &TensorData| {
-            let dv = value.prev[0].data().mapv(|x| if x > 0.0 { 1.0 } else { 0.0 });
+            let dv = value.prev[0]
+                .data()
+                .mapv(|x| if x > 0.0 { 1.0 } else { 0.0 });
             value.prev[0].grad_mut().scaled_add(1.0, &dv);
         });
         out
@@ -217,8 +223,13 @@ impl Tensor {
         out.inner_mut().prev = vec![self.clone(), Tensor::from_f64(power)];
         out.inner_mut().op = Some(String::from("^"));
         out.inner_mut().backward = Some(|value: &TensorData| {
-            let base_vec = value.prev[0].data().mapv(|val| val.powf(value.prev[1].data()[[0, 0]] - 1.0));
-            value.prev[0].grad_mut().scaled_add(1.0, &(value.prev[1].data().deref() * base_vec * value.grad.clone()));
+            let base_vec = value.prev[0]
+                .data()
+                .mapv(|val| val.powf(value.prev[1].data()[[0, 0]] - 1.0));
+            value.prev[0].grad_mut().scaled_add(
+                1.0,
+                &(value.prev[1].data().deref() * base_vec * value.grad.clone()),
+            );
         });
         out
     }
@@ -338,21 +349,20 @@ impl Tensor {
 impl Iterator for Tensor {
     type Item = Tensor;
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.iter().next().unwrap()) 
+        Some(self.iter().next().unwrap())
     }
 }
 
 // TODO: better printing of tensors
 impl Debug for Tensor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{:?}",
-            self.data().deref(),
-        )
+        write!(f, "{:?}", self.data().deref(),)
     }
 }
 
+// macro to automatically write impls for
+// general tensor elementwise binary ops
+// for basic math
 macro_rules! impl_binary_op {
     [$trait:ident, $op_name:ident, $op:tt] => {
         impl $trait for Tensor {
@@ -361,7 +371,7 @@ macro_rules! impl_binary_op {
             fn $op_name(self, rhs: Tensor) -> Self::Output {
                 &self $op &rhs
             }
-        } 
+        }
 
         impl $trait<f64> for &Tensor {
             type Output = Tensor;
@@ -431,7 +441,63 @@ macro_rules! impl_binary_op {
     };
 }
 
+// similar macro as one above, just for
+// assignment ops for basic math
+// e.g. +=, -=, *=, /=
+
+macro_rules! impl_assignment_op {
+    [$trait:ident, $op_name:ident, $op:tt] => {
+        impl $trait for Tensor {
+            fn $op_name(&mut self, rhs: Tensor) {
+               *self = self.clone() $op rhs;
+            }
+        }
+
+        impl $trait<f64> for Tensor {
+            fn $op_name(&mut self, rhs: f64) {
+               *self = self.clone() $op rhs;
+            }
+        }
+    };
+
+    // [$trait:ident, $op_name:ident, $op:tt, $update_grad:expr] => {
+    //     impl $trait for &Tensor {
+    //         fn $op_name(&mut self, rhs: &Tensor) {
+    //             self.inner_mut().prev = vec![self.clone(), rhs.clone()];
+    //             self.inner_mut().op = Some(stringify!($op_name).to_string());
+    //             self.inner_mut().backward = Some(|value: &TensorData| {
+    //                 let (dv1, dv2) = $update_grad(&value.grad, value.prev[0].data().deref(), value.prev[1].data().deref());
+
+    //                 let dv1 = match value.prev[0].grad().dim() {
+    //                     (1, 1) => arr2(&[[dv1.sum()]]),
+    //                     (1, n) => dv1.sum_axis(Axis(0)).into_shape((1, n)).unwrap(),
+    //                     (n, 1) => dv1.sum_axis(Axis(1)).into_shape((n, 1)).unwrap(),
+    //                     (_, _) => dv1,
+    //                 };
+    //                 let dv2 = match value.prev[1].grad().dim() {
+    //                     (1, 1) => arr2(&[[dv2.sum()]]),
+    //                     (1, n) => dv2.sum_axis(Axis(0)).into_shape((1, n)).unwrap(),
+    //                     (n, 1) => dv2.sum_axis(Axis(1)).into_shape((n, 1)).unwrap(),
+    //                     (_, _) => dv2,
+    //                 };
+
+    //                 value.prev[0].grad_mut().scaled_add(1.0, &dv1);
+    //                 value.prev[1].grad_mut().scaled_add(1.0, &dv2);
+    //             });
+    //         }
+    //     }
+
+    //     impl_assignment_op![$trait, $op_name, $op];
+    // };
+}
+
 impl_binary_op![Add, add, +, |grad, _a, _b| { (grad * 1.0, grad * 1.0) }];
 impl_binary_op![Sub, sub, -, |grad, _a, _b| { (grad * 1.0, grad * -1.0) }];
 impl_binary_op![Mul, mul, *, |grad, a, b| { (grad * b, grad * a) }];
 impl_binary_op![Div, div, /, |grad, a, b| { (grad * 1.0 / b, grad * -1.0 * a / (b * b)) }];
+
+impl_assignment_op![AddAssign, add_assign, +];
+// impl_assignment_op![AddAssign, add_assign, +=, |grad, _a, _b| { (grad * 1.0, grad * 1.0) }];
+// impl_assignment_op![SubAssign, sub_assign, -=, |grad, _a, _b| { (grad * 1.0, grad * -1.0) }];
+// impl_assignment_op![MulAssign, mul_assign, *=, |grad, a, b| { (grad * b, grad * a) }];
+// impl_assignment_op![DivAssign, div_assign, /=, |grad, a, b| { (grad * 1.0 / b, grad * -1.0 * a / (b * b)) }];
