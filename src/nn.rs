@@ -1,9 +1,9 @@
-use crate::Tensor;
 use crate::mse;
+use crate::Tensor;
 use elara_log::prelude::*;
 use ndarray::prelude::*;
-use ndarray_rand::RandomExt;
 use ndarray_rand::rand_distr::Uniform;
+use ndarray_rand::RandomExt;
 use std::fmt::Debug;
 use std::iter::zip;
 
@@ -47,7 +47,7 @@ pub struct Linear {
     pub biases: Tensor,
     pub activation: Activations,
     input_dim: usize,
-    output_dim: usize
+    output_dim: usize,
 }
 
 impl Linear {
@@ -60,7 +60,7 @@ impl Linear {
             biases: Tensor::new(biases),
             activation,
             input_dim,
-            output_dim
+            output_dim,
         }
     }
 }
@@ -82,7 +82,7 @@ impl Layer for Linear {
         out = match &self.activation {
             Activations::ReLU => out.relu(),
             Activations::Sigmoid => out.sigmoid(),
-            Activations::None => out
+            Activations::None => out,
         };
         out
     }
@@ -96,31 +96,34 @@ impl Layer for Linear {
 pub enum Activations {
     ReLU,
     Sigmoid,
-    None
+    None,
 }
 
 /// Common optimizers
 pub enum Optimizers {
     SGD,
     BGD,
-    None
+    None,
 }
 
 /// A neural network model
 /// with a keras-inspired API
 pub struct Model {
     pub layers: Vec<Box<dyn Layer>>,
-    pub optimizer: Optimizers
+    pub optimizer: Optimizers,
 }
 
 impl Model {
     /// Create a new model
     pub fn new() -> Model {
-        Model { layers: vec![], optimizer: Optimizers::None }
+        Model {
+            layers: vec![],
+            optimizer: Optimizers::None,
+        }
     }
 
     /// Add a layer to a model
-    pub fn add_layer(&mut self, layer: Linear) { 
+    pub fn add_layer(&mut self, layer: Linear) {
         self.layers.push(Box::new(layer))
     }
 
@@ -171,13 +174,18 @@ impl Model {
         }
 
         match self.optimizer {
-            Optimizers::None => { 
+            Optimizers::None => {
                 error!("[elara-math] The model was not configured with an optimizer and cannot be trained.")
-            },
+            }
             _ => {}
         };
 
-        for (idx, (layer, layer_next)) in self.layers.iter().zip(self.layers[1..self.layers.len()].iter()).enumerate() {
+        for (idx, (layer, layer_next)) in self
+            .layers
+            .iter()
+            .zip(self.layers[1..self.layers.len()].iter())
+            .enumerate()
+        {
             if layer.shape().1 != layer_next.shape().0 {
                 error!("[elara-math] Layer #{} was configured with an output size of {}, while layer #{} was configured with an input size of {}. This is invalid, both should match.", idx + 1, layer.shape().1, idx + 2, layer_next.shape().0);
             }
@@ -194,7 +202,7 @@ impl Model {
                     loss.backward();
                     self.update(lr);
                     self.zero_grad();
-                },
+                }
                 Optimizers::SGD => {
                     let mut counter = 0;
                     for (x_el, y_el) in zip(x.clone(), y.clone()) {
@@ -211,8 +219,8 @@ impl Model {
                         self.zero_grad();
                         counter += 1;
                     }
-                },
-                _ => unreachable!()
+                }
+                _ => unreachable!(),
             }
         }
     }

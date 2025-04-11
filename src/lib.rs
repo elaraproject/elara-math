@@ -9,12 +9,12 @@ offering:
 - Numerical solvers for a variety of numerical analysis problems (still WIP)
 */
 
-mod tensor;
-mod nn;
 mod integrate;
+mod nn;
+mod tensor;
 
-pub use tensor::*;
 pub use nn::*;
+pub use tensor::*;
 
 /// `elara-math` prelude
 pub mod prelude;

@@ -1,5 +1,5 @@
-use elara_math::prelude::*;
 use elara_log::prelude::*;
+use elara_math::prelude::*;
 
 fn main() {
     Logger::new().init().unwrap();
