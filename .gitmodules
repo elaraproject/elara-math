@@ -1,0 +1,3 @@
+[submodule "elara-log"]
+	path = src/elara-log
+	url = https://github.com/elaraproject/elara-log-current
