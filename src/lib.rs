@@ -1,12 +1,13 @@
-/*! This crate is a Rust-native tensor and math library that eventually aims to
+/*! This crate is a Rust-native tensor and math library, 
+developed for [Project Elara](https://github.com/elaraproject), that eventually aims to
 be a building block of a comprehensive machine learing and scientific computing
 library in Rust. It tries to be the analogue of [SciPy](https://scipy.org/),
 [NumPy](https://numpy.org/), and [PyTorch](https://pytorch.org/),
 offering:
 
-- Differentiable tensors (via `Tensor`)
+- Tensors: N-dimensional differentiable arrays (via `Tensor`)
 - An implementation of reverse-mode autodifferentiation
-- Numerical solvers for a variety of numerical analysis problems (still WIP)
+- Numerical solvers for calculus (only numerical integral evaluation is fully-supported at the moment, the ODE solver has been moved to [`elara-array`](https://github.com/elaraproject/elara-array)):
 */
 
 mod integrate;
