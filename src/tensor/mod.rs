@@ -497,7 +497,6 @@ impl_binary_op![Mul, mul, *, |grad, a, b| { (grad * b, grad * a) }];
 impl_binary_op![Div, div, /, |grad, a, b| { (grad * 1.0 / b, grad * -1.0 * a / (b * b)) }];
 
 impl_assignment_op![AddAssign, add_assign, +];
-// impl_assignment_op![AddAssign, add_assign, +=, |grad, _a, _b| { (grad * 1.0, grad * 1.0) }];
-// impl_assignment_op![SubAssign, sub_assign, -=, |grad, _a, _b| { (grad * 1.0, grad * -1.0) }];
-// impl_assignment_op![MulAssign, mul_assign, *=, |grad, a, b| { (grad * b, grad * a) }];
-// impl_assignment_op![DivAssign, div_assign, /=, |grad, a, b| { (grad * 1.0 / b, grad * -1.0 * a / (b * b)) }];
+impl_assignment_op![SubAssign, sub_assign, -];
+impl_assignment_op![MulAssign, mul_assign, *];
+impl_assignment_op![DivAssign, div_assign, /];
