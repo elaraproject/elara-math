@@ -1,0 +1,3 @@
+[submodule "src/elara-log-ng"]
+	path = src/elara-log-ng
+	url = https://github.com/elaraproject/elara-log-ng
