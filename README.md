@@ -17,7 +17,7 @@ Elara Math is a Rust-native math library, developed as part of [Project Elara](h
 
 It is intended to both contain a set of ready-to-use solvers and vectorized math on NumPy-style N-dimensional arrays, as well as a flexible user-friendly API that can be used to make more specialized/advanced libraries for computational tasks.
 
-As an example, here is a working tiny neural network using `elara-math` and its companion library [`elara-log`](https://github.com/elaraproject/elara-log) (`elara-log` is automatically installed when you install `elara-math`), ported from [this excellent Python demo](https://medium.com/technology-invention-and-more/how-to-build-a-simple-neural-network-in-9-lines-of-python-code-cc8f23647ca1):
+As an example, here is a working tiny neural network using `elara-math` and its companion library [`elara-log`](https://github.com/elaraproject/elara-log-ng) (`elara-log` is automatically installed when you install `elara-math`), ported from [this excellent Python demo](https://medium.com/technology-invention-and-more/how-to-build-a-simple-neural-network-in-9-lines-of-python-code-cc8f23647ca1):
 
 ```rust
 use elara_log::prelude::*;
@@ -72,7 +72,7 @@ For more examples, including basic usage of tensors, using automatic differentia
 To use `elara-math` for your own project, simply add it to your project with Cargo:
 
 ```sh
-cargo add elara-math elara_log
+cargo add elara-math elara-log-ng
 ```
 
 Then in your code, just import the library:
