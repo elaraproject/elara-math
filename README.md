@@ -1,5 +1,7 @@
 # Elara Math
 
+> :warning: **IMPORTANT:** Project Elara has switched over to the open-source forge [Codeberg](https://codeberg.org/). The Project Elara repositories have been moved to [this Codeberg page](https://codeberg.org/elaraproject/). **This GitHub repository is no longer maintained**.
+
 Elara Math is a Rust-native math library, developed as part of [Project Elara](https://github.com/elaraproject/)'s suite of open-source software libraries. It contains support for:
 
 - Tensors: N-dimensional arrays with built-in support for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation))\* (supported)
